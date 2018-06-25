@@ -1,4 +1,5 @@
 defaults:
+   test: prod
     vpc:            vpc-dmz
     subnet:         sub-bastion-a
     region:         eu-west-2
