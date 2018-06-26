@@ -1,0 +1,6 @@
+name: nbim_baseline
+createami: true
+components:
+    - win2016
+    - ubuntu16.04
+
