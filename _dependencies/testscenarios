@@ -1,0 +1,2 @@
+Create a random file. Check that it is not an application. i.e. does not have any meta.yaml, no other yaml or json file and no metadata that we recognise.
+
