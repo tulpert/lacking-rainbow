@@ -1,38 +1,112 @@
 #!/usr/bin/python3
 
-import os
-import re
+import sys
+import yaml
+import json
+from os import path
+from re import sub, match
 from subprocess import check_output
 
-fullpath           = os.path.abspath(__file__)
-shortpath          = (__file__)
-gitbasedirectory   = re.sub("/$", '', fullpath.replace(shortpath, ''))    # Retrieve the git branch base directory
-gitbranchname      = re.sub("^.*/", '', gitbasedirectory)
-commithistoryfile  = str(gitbasedirectory) + '/.git/.commithistory'
+debug = 1
+
+if debug:
+  print ("Running in DEBUG mode!!!")
+
+
+fullpath                = path.abspath(__file__)
+shortpath               = (__file__)
+gitbasedirectory        = sub("/$", '', fullpath.replace(shortpath, ''))    # Retrieve the git branch base directory
+gitbranchname           = sub("^.*/", '', gitbasedirectory)
+commithistoryfile       = str(gitbasedirectory) + '/.git/.commithistory'
+cloudformationfiles     = ['cloudformation.yaml', 'cloudformation.yml', 'cloudformation.json']
+metafiles               = ['meta.yaml', 'meta.yml', 'meta.json']
 
 # We are currently working in branch $branchname
-print ("Working in: " + gitbranchname)
+if debug:
+    print ("Working in: " + gitbranchname)
 
 changes = check_output(['git', 'diff', '--name-status', 'HEAD@{1}'])
 change_array = str(changes.decode()).split("\n")
 for i in change_array:
-  change = str(i)
-  # Run through the status of the files which have been updated
-  if re.match('^[A-Z]\s+', change):
-    operator = change[0] # re.sub('\s+.*$', '', change)
-    # Check the operator.
-    # M = Modified -> Will require reprovisioning
-    # A = Added    -> Will require a new stack
-    # D = Deleted  -> Will require removal of stack
-    if operator == 'A':
-      print ("Will ADD : " + change)
-    elif operator == 'M':
-      print ("Will MODIFY : " + change)
-    elif operator == 'D':
-      print ("Will DELETE : " + change)
+    change = str(i)
+    # Run through the status of the files which have been updated
+    if match('^[A-Z]\s+', change):
+        operator        = change[0]                             # The operator is A, M or D
+        file_changed    = sub('^\s*[A-Z]\s*', '', change)    # The file changed (full path from basedir)
+        base_change     = sub('\/.*$', '', file_changed)     # The base of the change. Either a file (because it was in basedir) or the directory name
+        content_change  = sub('.*[/]', '', file_changed)     # The content changed. This will be the config file in an application component
+        application     = sub('\/.*$', '', base_change)      # The application is the highest directory name. Can be similar to base_change sometimes
+        if debug:
+            print ('Content     -> ' + content_change ) 
+            print ('Base_change -> ' + base_change )
+            print ('Application -> ' + application )
+
+        # Read the application meta files
+        metafile = 0
+        for mf in metafiles:
+            if path.isfile(str(mf)):
+                metafile = mf 
+                break
+        if metafile:
+            if debug:
+                print ("Found Metafile: " + metafile)
+            if match('.+\.json', metafile):
+                # Read JSON data
+                try:
+                    with open(metafile, 'r') as f:
+                        metaarray = json.load(f)
+                except:
+                    print ("ERROR: JSON meta file is broken or this is not a JSON file!")
+                    exit(100)
+            else:
+                # Read YAML data
+                try:
+                    with open(metafile, 'r') as stream:
+                        metaarray = yaml.load(stream)
+                except:
+                    print ("ERROR: Yaml meta file is broken or this is not a Yaml file!")
+                    exit(100)
+        if metaarray:
+            print ("-> " + str(metaarray))
+
+
+        # Check the operator. 
+        # M = Modified -> Will require reprovisioning
+        # A = Added    -> Will require a new stack
+        # D = Deleted  -> Will require removal of stack
+        if operator == 'A':
+            # Establish what needs to be done. 
+            # * Is it a new stack?
+            # * Is it an existing stack that needs to be changed?
+            # * Is it single component?
+            # * What type of deployment?
+            print ("REMOVE BEFORE GOLIVE - Will ADD : " + file_changed)
+            if match('^meta.yaml$', base_change):
+                print (' ADD: Main meta.yaml was added. Figure out what to do!')
+            else:
+                # Which application component is being changed?
+                if base_change == content_change:
+                    # The file changed lives in the root directory. I don't think we need to do anything.
+                    do = "Nothing. Maybe something in the future..."
+                else:
+                    if debug:
+                        print (' ADD: Application['+application+']: ' + content_change)
+                    if content_change in cloudformationfiles:
+                        if debug:
+                            print ('>>>>> This is CLOUDFORMATION: ' + content_change)
+                        # Do some tests to verify that all the elements of the cloudformation stack is present.
+                        # I.e.: Tags, EasyRisk IDs, Costcenter IDs, Naming convention etc...
+                        # ---> Push to external lint script
+                        # If all good, push to account
+                        print ("Running: aws --profile " + gitbranchname + " cloudformation create-stack --stack-name rANdomStaCKName --region eu-west-2 --template-body file://" + file_changed) #file://deploycode/test/puppetmaster/puppetmaster-server/cloudformation.yaml  --region eu-west-2" : 
+        elif operator == 'M':
+            print ("REMOVE BEFORE GOLIVE - Will MODIFY : " + file_changed)
+        elif operator == 'D':
+            print ("REMOVE BEFORE GOLIVE - Will DELETE : " + file_changed)
+        else:
+            print ("Write to log and inform someone, because this operator is not known")
     else:
-      print ("Write to log and inform someone, because this operator is not known")
-  else:
-    if not re.match('^\s*$', change):
-      print ("Found no operator! Cancel operation and inform user.")
+        if not match('^\s*$', change):
+            print ("Found no operator! Cancel operation and inform user.")
+
 
