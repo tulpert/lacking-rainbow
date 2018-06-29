@@ -3,9 +3,14 @@
 import sys
 import yaml
 import json
+import random
+
+
 from os import path
-from re import sub, match
+from re import sub, match, search
 from subprocess import check_output
+
+# arn:aws:dynamodb:eu-west-2:519885927468:table/party
 
 debug = 1
 
@@ -20,6 +25,9 @@ gitbranchname           = sub("^.*/", '', gitbasedirectory)
 commithistoryfile       = str(gitbasedirectory) + '/.git/.commithistory'
 cloudformationfiles     = ['cloudformation.yaml', 'cloudformation.yml', 'cloudformation.json']
 metafiles               = ['meta.yaml', 'meta.yml', 'meta.json']
+configfiles             = ['config.yaml', 'config.yml', 'config.json']
+creationkeystring       = 'StackCreationString'
+
 
 # We are currently working in branch $branchname
 if debug:
@@ -30,12 +38,12 @@ change_array = str(changes.decode()).split("\n")
 for i in change_array:
     change = str(i)
     # Run through the status of the files which have been updated
-    if match('^[A-Z]\s+', change):
-        operator        = change[0]                             # The operator is A, M or D
-        file_changed    = sub('^\s*[A-Z]\s*', '', change)    # The file changed (full path from basedir)
-        base_change     = sub('\/.*$', '', file_changed)     # The base of the change. Either a file (because it was in basedir) or the directory name
-        content_change  = sub('.*[/]', '', file_changed)     # The content changed. This will be the config file in an application component
-        application     = sub('\/.*$', '', base_change)      # The application is the highest directory name. Can be similar to base_change sometimes
+    if match('^[A-Z]\d*\s+', change):
+        operator        = change[0]                             # The operator is A (Added), M (Modified), D (Deleted) or R (Renamed)
+        file_changed    = sub('^\s*[A-Z]\d*\s*', '', change)    # The file changed (full path from basedir)
+        base_change     = sub('\/.*$', '', file_changed)        # The base of the change. Either a file (because it was in basedir) or the directory name
+        content_change  = sub('.*[/]', '', file_changed)        # The content changed. This will be the config file in an application component
+        application     = sub('\/.*$', '', base_change)         # The application is the highest directory name. Can be similar to base_change sometimes
         if debug:
             print ('Content     -> ' + content_change ) 
             print ('Base_change -> ' + base_change )
@@ -91,6 +99,12 @@ for i in change_array:
                 else:
                     if debug:
                         print (' ADD: Application['+application+']: ' + content_change)
+                    # Check the config file and do the appropriate actions
+                    if search('^config\.y[a]{0,1}ml', content_change):
+                        print ("This is approved changefile")
+                        print ("TODO: START PARSING")
+                    else:
+                        print ("THIS IS NOT AN APPROVED CHANGEFILE. INFORM USER/CHANNEL!!!")
                     if content_change in cloudformationfiles:
                         if debug:
                             print ('>>>>> This is CLOUDFORMATION: ' + content_change)
@@ -98,15 +112,34 @@ for i in change_array:
                         # I.e.: Tags, EasyRisk IDs, Costcenter IDs, Naming convention etc...
                         # ---> Push to external lint script
                         # If all good, push to account
+                        print ("------> Should be added to DynamoDB and run through a queue system <------")
                         print ("Running: aws --profile " + gitbranchname + " cloudformation create-stack --stack-name rANdomStaCKName --region eu-west-2 --template-body file://" + file_changed) #file://deploycode/test/puppetmaster/puppetmaster-server/cloudformation.yaml  --region eu-west-2" : 
+                        newdeploy = check_output(['aws', '--profile', gitbranchname, 'cloudformation', 'create-stack', '--stack-name', 'RANDOMNAME', '--tags', 'Key="'+creationkeystring+'",Value="'+ file_changed +'"',  '--region', 'eu-west-2', '--template-body', 'file://'+file_changed])
+
+###  print random.randint(0, 5)
+
+
+                        ##### TODO: Take newdeploy output and add tags to the cloudformation to delete the stack if the Delete options comes
+                        print ("--- A output ---")
+                        print (str(newdeploy))
+                        try:
+                            # newstack = json.load(newdeploy.decode())
+                            print ("Output of new Cloudformation Stack: " + str(newstack))
+                        except:
+                            print ("Output of cloudformation create-stack was unexpected: " + str(newdeploy))
+                        print ("---   end    ---")
         elif operator == 'M':
             print ("REMOVE BEFORE GOLIVE - Will MODIFY : " + file_changed)
         elif operator == 'D':
             print ("REMOVE BEFORE GOLIVE - Will DELETE : " + file_changed)
+        elif operator == 'R':
+            print ("REMOVE BEFORE GOLIVE - Will RENAME : " + file_changed)
         else:
             print ("Write to log and inform someone, because this operator is not known")
     else:
         if not match('^\s*$', change):
-            print ("Found no operator! Cancel operation and inform user.")
+            print ("Found no operator! Cancel operation and inform user. String: " + change)
+    if debug:
+        print (" ----------------- ")
 
 
