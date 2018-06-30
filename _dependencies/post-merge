@@ -1,145 +1,259 @@
 #!/usr/bin/python3
 
+import re
 import sys
+import time
 import yaml
 import json
 import random
+import datetime
 
 
 from os import path
-from re import sub, match, search
 from subprocess import check_output
 
-# arn:aws:dynamodb:eu-west-2:519885927468:table/party
-
-debug = 1
-
-if debug:
-  print ("Running in DEBUG mode!!!")
-
+debug = False
 
 fullpath                = path.abspath(__file__)
 shortpath               = (__file__)
-gitbasedirectory        = sub("/$", '', fullpath.replace(shortpath, ''))    # Retrieve the git branch base directory
-gitbranchname           = sub("^.*/", '', gitbasedirectory)
+gitbasedirectory        = re.sub("/$", '', fullpath.replace(shortpath, ''))    # Retrieve the git branch base directory
+gitbranchname           = re.sub("^.*/", '', gitbasedirectory)
 commithistoryfile       = str(gitbasedirectory) + '/.git/.commithistory'
 cloudformationfiles     = ['cloudformation.yaml', 'cloudformation.yml', 'cloudformation.json']
 metafiles               = ['meta.yaml', 'meta.yml', 'meta.json']
 configfiles             = ['config.yaml', 'config.yml', 'config.json']
-creationkeystring       = 'StackCreationString'
+creationkeystring       = 'StackCreationPath'
+region                  = 'eu-west-2'
+logfilepath             = '/tmp/logfile'
+runid                   = str(random.randint(100000,999999))
+loop_seconds            = 1800
+timer_logcount          = 10                            # How many seconds between logging when waiting for new stackbuild
 
-
-# We are currently working in branch $branchname
-if debug:
-    print ("Working in: " + gitbranchname)
-
-changes = check_output(['git', 'diff', '--name-status', 'HEAD@{1}'])
-change_array = str(changes.decode()).split("\n")
-for i in change_array:
-    change = str(i)
-    # Run through the status of the files which have been updated
-    if match('^[A-Z]\d*\s+', change):
-        operator        = change[0]                             # The operator is A (Added), M (Modified), D (Deleted) or R (Renamed)
-        file_changed    = sub('^\s*[A-Z]\d*\s*', '', change)    # The file changed (full path from basedir)
-        base_change     = sub('\/.*$', '', file_changed)        # The base of the change. Either a file (because it was in basedir) or the directory name
-        content_change  = sub('.*[/]', '', file_changed)        # The content changed. This will be the config file in an application component
-        application     = sub('\/.*$', '', base_change)         # The application is the highest directory name. Can be similar to base_change sometimes
-        if debug:
-            print ('Content     -> ' + content_change ) 
-            print ('Base_change -> ' + base_change )
-            print ('Application -> ' + application )
-
-        # Read the application meta files
-        metafile = 0
-        for mf in metafiles:
-            if path.isfile(str(mf)):
-                metafile = mf 
-                break
-        if metafile:
+def main():
+    # We are currently working in branch $branchname
+    logAndInform ("Starting run id ["+runid+"]. Working in: " + gitbranchname)
+    
+    changes = check_output(['git', 'diff', '--name-status', 'HEAD@{1}'])
+    change_array = str(changes.decode()).split("\n")
+    for i in change_array:
+        change = str(i)
+        # Run through the status of the files which have been updated
+        if re.match('^[A-Z]\d*\s+', change):
+            operator        = change[0]                             # The operator is A (Added), M (Modified), D (Deleted) or R (Renamed)
+            file_changed    = re.sub('^\s*[A-Z]\d*\s*', '', change)    # The file changed (full path from basedir). i.e. app/app-component/cloudformation.yaml
+            base_change     = re.sub('\/.*$', '', file_changed)        # The base of the change. Either a file (because it was in basedir) or the directory name. i.e. app
+            content_change  = re.sub('.*[/]', '', file_changed)        # The content changed. This will be the config file in an application component. i.e. 
+            application     = re.sub('\/.*$', '', base_change)         # The application is the highest directory name. Can be similar to base_change sometimes
             if debug:
-                print ("Found Metafile: " + metafile)
-            if match('.+\.json', metafile):
-                # Read JSON data
-                try:
-                    with open(metafile, 'r') as f:
-                        metaarray = json.load(f)
-                except:
-                    print ("ERROR: JSON meta file is broken or this is not a JSON file!")
-                    exit(100)
-            else:
-                # Read YAML data
-                try:
-                    with open(metafile, 'r') as stream:
-                        metaarray = yaml.load(stream)
-                except:
-                    print ("ERROR: Yaml meta file is broken or this is not a Yaml file!")
-                    exit(100)
-        if metaarray:
-            print ("-> " + str(metaarray))
-
-
-        # Check the operator. 
-        # M = Modified -> Will require reprovisioning
-        # A = Added    -> Will require a new stack
-        # D = Deleted  -> Will require removal of stack
-        if operator == 'A':
+                logAndInform('Content     -> ' + content_change, msgtype="DEBUG")
+                logAndInform('Base_change -> ' + base_change, msgtype="DEBUG")
+                logAndInform('Application -> ' + application, msgtype="DEBUG")
+    
+            # Read the application meta files
+            metafile = 0
+            for mf in metafiles:
+                if path.isfile(str(mf)):
+                    metafile = mf 
+                    break
+            if metafile:
+                # if debug:
+                    #  --> print ("Found Metafile: " + metafile)
+                if re.match('.+\.json', metafile):
+                    # Read JSON data
+                    try:
+                        with open(metafile, 'r') as stream:
+                            metaarray = json.load(stream)
+                    except:
+                        logAndInform("JSON meta file is broken or this is not a JSON file!", msgtype="ERROR")
+                        exit(100)
+                else:
+                    # Read YAML data
+                    try:
+                        with open(metafile, 'r') as stream:
+                            metaarray = yaml.load(stream)
+                    except:
+                        logAndInform("Yaml meta file is broken or this is not a Yaml file!", msgtype="ERROR")
+                        exit(100)
+            # if metaarray:
+            #     print ("-> " + str(metaarray))
+    
+    
+            # Check the operator. 
+            # M = Modified -> Will require reprovisioning
+            # A = Added    -> Will require a new stack
+            # D = Deleted  -> Will require removal of stack
             # Establish what needs to be done. 
             # * Is it a new stack?
             # * Is it an existing stack that needs to be changed?
             # * Is it single component?
             # * What type of deployment?
-            print ("REMOVE BEFORE GOLIVE - Will ADD : " + file_changed)
-            if match('^meta.yaml$', base_change):
-                print (' ADD: Main meta.yaml was added. Figure out what to do!')
+            # --> print ("REMOVE BEFORE GOLIVE - Will ADD : " + file_changed)
+            if re.match('^meta.yaml$', base_change):
+                if operator == 'A':
+                    do = "something"
+                    # --> print (' ADD: Main meta.yaml was added. Figure out what to do!')
+                elif operator == 'D':
+                    do = "something"
+                    # --> print (' DELETED: Main meta.yaml was deleted. Figure out what to do!')
+                elif operator == 'R':
+                    do = "something"
+                    # --> print (' RENAMED: Main meta.yaml was renamed. Figure out what to do!')
+                elif operator == 'M':
+                    do = "something"
+                    # --> print (' MODIFIED: Main meta.yaml was modified. Figure out what to do!')
             else:
                 # Which application component is being changed?
+                app_component   = file_changed.split("/")[1]           
+    
                 if base_change == content_change:
                     # The file changed lives in the root directory. I don't think we need to do anything.
                     do = "Nothing. Maybe something in the future..."
                 else:
-                    if debug:
-                        print (' ADD: Application['+application+']: ' + content_change)
+                    logAndInform('Working on: Application['+application+']['+app_component+']: ' + content_change)
+
                     # Check the config file and do the appropriate actions
-                    if search('^config\.y[a]{0,1}ml', content_change):
-                        print ("This is approved changefile")
-                        print ("TODO: START PARSING")
+                    if re.search('^config\.y[a]{0,1}ml', content_change):
+                        do = "something"
+                        # --> print ("This is approved changefile")
+                        # --> print ("TODO: START PARSING")
                     else:
-                        print ("THIS IS NOT AN APPROVED CHANGEFILE. INFORM USER/CHANNEL!!!")
+                        do = "something"
+                        # --> print ("THIS IS NOT AN APPROVED CHANGEFILE. INFORM USER/CHANNEL!!!")
                     if content_change in cloudformationfiles:
-                        if debug:
-                            print ('>>>>> This is CLOUDFORMATION: ' + content_change)
+                        logAndInform('Cloudformation file detected. Parsing [' + file_changed + ']')
                         # Do some tests to verify that all the elements of the cloudformation stack is present.
-                        # I.e.: Tags, EasyRisk IDs, Costcenter IDs, Naming convention etc...
-                        # ---> Push to external lint script
-                        # If all good, push to account
-                        print ("------> Should be added to DynamoDB and run through a queue system <------")
-                        print ("Running: aws --profile " + gitbranchname + " cloudformation create-stack --stack-name rANdomStaCKName --region eu-west-2 --template-body file://" + file_changed) #file://deploycode/test/puppetmaster/puppetmaster-server/cloudformation.yaml  --region eu-west-2" : 
-                        newdeploy = check_output(['aws', '--profile', gitbranchname, 'cloudformation', 'create-stack', '--stack-name', 'RANDOMNAME', '--tags', 'Key="'+creationkeystring+'",Value="'+ file_changed +'"',  '--region', 'eu-west-2', '--template-body', 'file://'+file_changed])
-
-###  print random.randint(0, 5)
-
-
-                        ##### TODO: Take newdeploy output and add tags to the cloudformation to delete the stack if the Delete options comes
-                        print ("--- A output ---")
-                        print (str(newdeploy))
-                        try:
-                            # newstack = json.load(newdeploy.decode())
-                            print ("Output of new Cloudformation Stack: " + str(newstack))
-                        except:
-                            print ("Output of cloudformation create-stack was unexpected: " + str(newdeploy))
-                        print ("---   end    ---")
-        elif operator == 'M':
-            print ("REMOVE BEFORE GOLIVE - Will MODIFY : " + file_changed)
-        elif operator == 'D':
-            print ("REMOVE BEFORE GOLIVE - Will DELETE : " + file_changed)
-        elif operator == 'R':
-            print ("REMOVE BEFORE GOLIVE - Will RENAME : " + file_changed)
+                        if validateCloudformation(file_changed):
+                            #
+                            # TODO: Should be added to DynamoDB or run through a queue system (SQS?) ???
+                            #
+                            t = datetime.datetime.now()
+                            datestring = str(t.strftime('%Y%d%m-%s'))
+                            stackname = application + '-' + app_component + '-' + datestring + '-' + runid
+                            if operator == 'A':
+                                doAddCloudformation(file_changed, gitbranchname, stackname, region)
+                            elif operator == 'D':
+                                doDeleteCloudformation(file_changed, gitbranchname, stackname, region)
+                            elif operator == 'R':
+                                logAndInform("Detected RENAME event: [" + file_changed + "]")
+                                logAndInform("  -> RENAME IS NOT IMPLEMENTED YET <- ", msgtype="WARNING")
+                                # --> print ("There has been some renaming, but nothing else has changed. Check if new config files not exist and perform ADD. If not, see if we need to update any tags. If not, then ignore.")
+                            elif operator == 'M':
+                                doModifyCloudformation(file_changed, gitbranchname, stackname, region)
+                            else:
+                                logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
+                                # --> print ("Write to log and inform someone, because this operator is not known. Change:  [" + change + "]")
         else:
-            print ("Write to log and inform someone, because this operator is not known")
-    else:
-        if not match('^\s*$', change):
-            print ("Found no operator! Cancel operation and inform user. String: " + change)
+            if not re.match('^\s*$', change):
+                logAndInform("Found no operator!. Error 16", msgtype="ERROR")
+                # --> print ("Found no operator! Cancel operation and inform user. String: " + change)
+    logAndInform("Finished run id ["+runid+"]!")
+    
+
+
+def logAndInform(message, email=True, teams=True, logfile=logfilepath, msgtype='INFO'):
+    t = datetime.datetime.now()
+    datestring = str(t.strftime('%m %b %Y %H:%M:%S (UTC?)'))
+    if logfile:
+        try:
+            w=open(logfilepath, 'a')
+            w.write(datestring + ' ['+str(msgtype)+'] ['+runid+'] ' + str(message) + "\n")
+            w.close()
+        except:
+            print (datestring + " [ERROR] ["+runid+"] Could not write message to logfile! Error 1144")
+    
+def validateCloudformation(cffile):
+    # This function will read through the cloudformation file and verify
+    # that all elements exists and are within compliance and naming standards
+    # I.e.: Tags, EasyRisk IDs, Costcenter IDs, Naming convention etc...
+    # ---> Push to external lint script
+    # If all good, push to account
+
+    returnvalue = True
+    if path.isfile(cffile):    # Need to check if file exists. If DELETE or MODIFY command, then file may be deleted
+        if re.search('\.y[a]{0,1}ml$', cffile):
+            logAndInform("Detected YAML file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
+        elif re.match('\.json', cffile):
+            logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
+    logAndInform("Validation of Cloudformation is not fully implemented at this time!!! Current value is: " + str(returnvalue), msgtype="WARNING")
+    return returnvalue
+
+def doAddCloudformation(cloudformationfile, account, name, region):  
+    #logAndInform("cff: " + cloudformationfile, msgtype="--------->")
+    #logAndInform("name: " + name, msgtype="--------->")
+    logAndInform("Detected ADD event: [" + cloudformationfile + "]")
+    logAndInform("Creating new Cloudformation stack: [" + cloudformationfile + "]")
+    newdeploy = check_output(['aws', '--profile', account, 'cloudformation', 'create-stack', '--stack-name', name, '--tags', 'Key="'+creationkeystring+'",Value="'+ cloudformationfile +'"',  '--region', region, '--template-body', 'file://'+cloudformationfile])
+    newdeployoutput = str(newdeploy.decode())
+    logAndInform(str(newdeploy.decode()))
+    for _line in newdeployoutput.split("\n"):
+        logAndInform(" # " + _line)
+
+    return newdeploy
+
+def doModifyCloudformation(cloudformationfile, account, name, region):
+    logAndInform("Detected MODIFY event: [" + cloudformationfile + "]")
+    logAndInform("  -> MODIFY is WIP and in BETA <- ", msgtype="WARNING")
+    # Modification has occured. Do the following:
+    # 1. Find the previous version of the cloudfoundation stack (if exists)
+    # 2. Create new cloudformation stack
+    # 3. Verify that new stack is OK
+    # 4. Delete old cloudformation stack
+    # Hint: use SQS for this!
+    
+    # 1
+    searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + cloudformationfile + '\'])][StackId]', '--output', 'text'])
     if debug:
-        print (" ----------------- ")
+        logAndInform("'aws', '--profile', " + account + ", 'cloudformation', 'describe-stacks', '--region', " + region + ", '--query', " + 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + cloudformationfile + '\'])][StackId]' + ", '--output', 'text' ", msgtype="DEBUG")
+    stacksWithSearchTag = str(searchstack.decode()).split("\n")
+    newstack = doAddCloudformation(cloudformationfile, account, name, region)
+    # TODO: Insert logic here to detect that the new stack is active and working!
+    responsarray = json.loads(str(newstack.decode()))
+    logAndInform ("Creating new Stack. StackID [" + responsarray["StackId"] + ']. This could take a few minutes depending on your requested deployment. Please wait...')
+    
+    # Loop for a while to see if the new stack comes up OK.
+    loop = 0
+    timer_counter = 0
+    while loop < loop_seconds:
+        # Check status of the running stack-create
+        create_status = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--stack-name', str(responsarray["StackId"]), '--query', 'Stacks[].StackStatus', '--output', 'text' ])
+        if "CREATE_IN_PROGRESS" in str(create_status):
+            timer_counter = timer_counter + 1
+            if timer_counter > timer_logcount:
+                logAndInform ("Still waiting for CREATE_COMPLETE on StackId[" + str(responsarray["StackId"]) + "]. Please have patience...")
+                timer_counter = 0
+            time.sleep(1)
+        elif "CREATE_COMPLETE" in str(create_status):
+            loop = loop_seconds
+        else:
+            # Message status is other than what we expected. Inform user!
+            logAndInform ("Create status mismatch. Expected CREATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
+            loop = loop_seconds
+ 
+    for stackid in stacksWithSearchTag:
+        if not re.search('^\s*$', stackid):
+            logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
+            doDeleteCloudformation(str(stackid), account, name, region)
+
+def doDeleteCloudformation(element, account, name, region):
+    logAndInform("Performing DELETE event: [" + element + "]")
+    if re.search('^arn\:aws\:cloudformation', element):
+        # This is a Cloudformation ID. We can delete it directly
+        if debug:
+            logAndInform("Detected ARN ID [" + str(element) + "]", msgtype="DEBUG")
+        stackid = str(element)
+        deleteStackIds = [stackid, ""]
+    elif re.search('^\s*$', element):
+        deleteStackIds = ["", ""]
+        do = "nothing"    # The line is empty. This happens when there is a newline at the end of the aws describe json output
+    else:
+        if debug:
+            logAndInform("Detected cloudformation filepath - must do search based on Tags.", msgtype="DEBUG")
+        searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + element + '\'])][StackId]', '--output', 'text'])
+        deleteStackIds = str(searchstack.decode()).split("\n")
+    for stackid in deleteStackIds:
+        if not re.search('^\s*$', stackid):
+            logAndInform("Performing delete of StackId [" + str(stackid) + ']')
+            deletestack = check_output(['aws', '--profile', account, 'cloudformation', 'delete-stack', '--region', region, '--stack-name', stackid])
 
 
+main()
