@@ -8,7 +8,6 @@ import json
 import random
 import datetime
 
-
 from os import path
 from subprocess import check_output
 
@@ -104,6 +103,9 @@ def main():
             else:
                 # Which application component is being changed?
                 app_component   = file_changed.split("/")[1]           
+                t               = datetime.datetime.now()
+                datestring      = str(t.strftime('%Y%d%m-%s'))
+                stackname       = application + '-' + app_component + '-' + datestring + '-' + runid
     
                 if base_change == content_change:
                     # The file changed lives in the root directory. I don't think we need to do anything.
@@ -113,9 +115,19 @@ def main():
 
                     # Check the config file and do the appropriate actions
                     if re.search('^config\.y[a]{0,1}ml', content_change):
-                        do = "something"
-                        # --> print ("This is approved changefile")
-                        # --> print ("TODO: START PARSING")
+                        logAndInform('Config file detected. Parsing [' + file_changed + ']')
+                        if validateConfig(file_changed):
+                            if operator == 'A':
+                                doCreateCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
+                            elif operator == 'D':
+                                doDeleteCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
+                            elif operator == 'M':
+                                do = "something"
+                            elif operator == 'R':
+                                do = "something"
+                            else:
+                                logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
+                        
                     else:
                         do = "something"
                         # --> print ("THIS IS NOT AN APPROVED CHANGEFILE. INFORM USER/CHANNEL!!!")
@@ -126,9 +138,6 @@ def main():
                             #
                             # TODO: Should be added to DynamoDB or run through a queue system (SQS?) ???
                             #
-                            t = datetime.datetime.now()
-                            datestring = str(t.strftime('%Y%d%m-%s'))
-                            stackname = application + '-' + app_component + '-' + datestring + '-' + runid
                             if operator == 'A':
                                 doAddCloudformation(file_changed, gitbranchname, stackname, region)
                             elif operator == 'D':
@@ -141,7 +150,6 @@ def main():
                                 doModifyCloudformation(file_changed, gitbranchname, stackname, region)
                             else:
                                 logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
-                                # --> print ("Write to log and inform someone, because this operator is not known. Change:  [" + change + "]")
         else:
             if not re.match('^\s*$', change):
                 logAndInform("Found no operator!. Error 16", msgtype="ERROR")
@@ -236,6 +244,7 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
 
 def doDeleteCloudformation(element, account, name, region):
     logAndInform("Performing DELETE event: [" + element + "]")
+    deletestack = False
     if re.search('^arn\:aws\:cloudformation', element):
         # This is a Cloudformation ID. We can delete it directly
         if debug:
@@ -254,6 +263,19 @@ def doDeleteCloudformation(element, account, name, region):
         if not re.search('^\s*$', stackid):
             logAndInform("Performing delete of StackId [" + str(stackid) + ']')
             deletestack = check_output(['aws', '--profile', account, 'cloudformation', 'delete-stack', '--region', region, '--stack-name', stackid])
+    logAndInform("Deletion of ["+name+"] probably was a success! ReferenceID: "+runid+". Output: " + str(deletestack))
 
+def validateConfig(configfile):
+    logAndInform("Validation of Config is not fully implemented at this time!!!", msgtype="WARNING")
+    return True
 
+def doCreateCloudformationFromConfig(configfile, account, name, region):
+    logAndInform("Performing doCreateCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
+    logAndInform(" CREATE config not implemented yet", msgtype="WARNING")
+    doAddCloudformation(configfile, account, name, region)
+    
+def doDeleteCloudformationFromConfig(configfile, account, name, region):
+    logAndInform("Performing doDeleteCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
+    doDeleteCloudformation(configfile, account, name, region)
+    
 main()
