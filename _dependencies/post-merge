@@ -7,11 +7,12 @@ import yaml
 import json
 import random
 import datetime
+import tempfile
 
 from os import path
 from subprocess import check_output
 
-debug = False
+debug = True
 
 fullpath                = path.abspath(__file__)
 shortpath               = (__file__)
@@ -27,6 +28,7 @@ logfilepath             = '/tmp/logfile'
 runid                   = str(random.randint(100000,999999))
 loop_seconds            = 1800
 timer_logcount          = 10                            # How many seconds between logging when waiting for new stackbuild
+templatedir             = "/opt/orchestration/templates/"
 
 def main():
     # We are currently working in branch $branchname
@@ -103,9 +105,13 @@ def main():
             else:
                 # Which application component is being changed?
                 app_component   = file_changed.split("/")[1]           
+                if len(file_changed.split("/")) > 3:
+                    sub_component   = str('-'.join(file_changed.split("/")[2:-1])) + str('-')
+                else:
+                    sub_component   = ""
                 t               = datetime.datetime.now()
                 datestring      = str(t.strftime('%Y%d%m-%s'))
-                stackname       = application + '-' + app_component + '-' + datestring + '-' + runid
+                stackname       = gitbranchname + "-" + application + '-' + app_component + '-' + sub_component + datestring + '-' + runid
     
                 if base_change == content_change:
                     # The file changed lives in the root directory. I don't think we need to do anything.
@@ -118,6 +124,7 @@ def main():
                         logAndInform('Config file detected. Parsing [' + file_changed + ']')
                         if validateConfig(file_changed):
                             if operator == 'A':
+                                logAndInform("Running A")
                                 doCreateCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
                             elif operator == 'D':
                                 doDeleteCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
@@ -272,6 +279,21 @@ def validateConfig(configfile):
 def doCreateCloudformationFromConfig(configfile, account, name, region):
     logAndInform("Performing doCreateCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
     logAndInform(" CREATE config not implemented yet", msgtype="WARNING")
+
+    # Extract the yaml data from the config file
+    metaarray = ""
+    try:
+        with open(configfile, 'r') as stream:
+            metaarray = yaml.load(stream)
+    except:
+        logAndInform("Yaml config file ["+str(configfile)+"] is broken or this is not a Yaml file!", msgtype="ERROR")
+        exit(101)
+
+    newtempfile = tempfile.mkstemp()
+    templatefile = open(str(templatedir + "/ec2.template"), "r")
+    print ("====> " + str(templatefile))
+    templatefile.close()
+
     doAddCloudformation(configfile, account, name, region)
     
 def doDeleteCloudformationFromConfig(configfile, account, name, region):
