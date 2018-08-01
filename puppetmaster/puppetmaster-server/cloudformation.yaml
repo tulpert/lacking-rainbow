@@ -16,4 +16,7 @@ Resources:
                     Key: Bob
                     Value: Bobette
             UserData: 
-                "Fn::Base64": "eXVtIHVwZGF0ZSAteQp5dW0gaW5zdGFsbCB0ZWxuZXQgLXkK"
+                "Fn::Base64": !Sub |
+                    #!/bin/bash 
+                    echo "Cnl1bSBpbnN0YWxsIHRlbG5ldCAteQplY2hvIGhhcHB5bW9ua2V5ID4gL3RtcC9tb25rZXlnby50eHQKCg==" > /tmp/scitella
+                    yum install telnet -y
