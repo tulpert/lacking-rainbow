@@ -15,5 +15,8 @@ Resources:
                 - 
                     Key: Bob
                     Value: Bobette
+                -
+                    Key: Name
+                    Value: fistbump
             UserData: 
                 "Fn::Base64": "Cnl1bSBpbnN0YWxsIHRlbG5ldCAteQplY2hvIGhhcHB5bW9ua2V5ID4gL3RtcC9tb25rZXlnby50eHQKCg=="
