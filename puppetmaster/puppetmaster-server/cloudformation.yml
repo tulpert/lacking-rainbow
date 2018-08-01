@@ -23,3 +23,10 @@ Resources:
                     Value: tanga
             UserData: 
                 "Fn::Base64": "Cnl1bSBpbnN0YWxsIHRlbG5ldCAteQplY2hvIGhhcHB5bW9ua2V5ID4gL3RtcC9tb25rZXlnby50eHQKCg=="
+        NetworkInterfaces: 
+            - AssociatePublicIpAddress: "true"
+              DeviceIndex: "0"
+              # GroupSet: 
+              #   - Ref: "myVPCEC2SecurityGroup"
+              # SubnetId: 
+              #   Ref: "PublicSubnet"
