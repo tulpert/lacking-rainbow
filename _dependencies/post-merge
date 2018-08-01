@@ -138,7 +138,7 @@ def main():
                     else:
                         do = "something"
                         # --> print ("THIS IS NOT AN APPROVED CHANGEFILE. INFORM USER/CHANNEL!!!")
-                    if content_change in cloudformationfiles:
+                    if content_change in cloudformationfiles or re.search("cloudformation", content_change):
                         logAndInform('Cloudformation file detected. Parsing [' + file_changed + ']')
                         # Do some tests to verify that all the elements of the cloudformation stack is present.
                         if validateCloudformation(file_changed):
@@ -197,7 +197,12 @@ def doAddCloudformation(cloudformationfile, account, name, region):
     #logAndInform("name: " + name, msgtype="--------->")
     logAndInform("Detected ADD event: [" + cloudformationfile + "]")
     logAndInform("Creating new Cloudformation stack: [" + cloudformationfile + "]")
-    newdeploy = check_output(['aws', '--profile', account, 'cloudformation', 'create-stack', '--stack-name', name, '--tags', 'Key="'+creationkeystring+'",Value="'+ cloudformationfile +'"',  '--region', region, '--template-body', 'file://'+cloudformationfile])
+    try:
+        # TODO!!
+        # Do some logic checing of the cloudformation file to ensure that it is valid!
+        newdeploy = check_output(['aws', '--profile', account, 'cloudformation', 'create-stack', '--stack-name', name, '--tags', 'Key="'+creationkeystring+'",Value="'+ cloudformationfile +'"',  '--region', region, '--template-body', 'file://'+cloudformationfile])
+    except:
+        logAndInform("Something was catched in ERROR. 166", msgtype="ERROR")
     newdeployoutput = str(newdeploy.decode())
     logAndInform(str(newdeploy.decode()))
     for _line in newdeployoutput.split("\n"):
