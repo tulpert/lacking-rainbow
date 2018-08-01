@@ -13,13 +13,13 @@ Resources:
             SubnetId: subnet-03eb7e27cebefc3e4
             Tags:
                 - 
-                    Key: bob
+                    Key: Bob
                     Value: Bobette
                 -
-                    Key: name
+                    Key: Name
                     Value: fistbump
                 -
-                    Key: service
+                    Key: Service
                     Value: tanga
             UserData: 
                 "Fn::Base64": "Cnl1bSBpbnN0YWxsIHRlbG5ldCAteQplY2hvIGhhcHB5bW9ua2V5ID4gL3RtcC9tb25rZXlnby50eHQKCg=="
