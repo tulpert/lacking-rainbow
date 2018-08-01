@@ -1,5 +1,5 @@
 Resources:
-    mysschnarf:
+    myschnarf:
         Type: AWS::EC2::Instance
         Properties: 
             AvailabilityZone: eu-west-2a
