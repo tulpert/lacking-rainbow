@@ -29,14 +29,17 @@ runid                   = str(random.randint(100000,999999))
 loop_seconds            = 1800
 timer_logcount          = 10                            # How many seconds between logging when waiting for new stackbuild
 templatedir             = "/opt/orchestration/templates/"
+filefilter              = '[a-zA-Z0-9]+'
 
 def main():
     # We are currently working in branch $branchname
     logAndInform ("Starting run id ["+runid+"]. Working in: " + gitbranchname)
     
     changes = check_output(['git', 'diff', '--name-status', 'HEAD@{1}'])
+    logAndInform('GitDiff: ' + str(changes))
     change_array = str(changes.decode()).split("\n")
     for i in change_array:
+        logAndInform("FILE BEING CHANGED: " + i)
         change = str(i)
         # Run through the status of the files which have been updated
         if re.match('^[A-Z]\d*\s+', change):
@@ -59,7 +62,7 @@ def main():
             if metafile:
                 # if debug:
                     #  --> print ("Found Metafile: " + metafile)
-                if re.match('.+\.json', metafile):
+                if re.match('.+\.json$', metafile):
                     # Read JSON data
                     try:
                         with open(metafile, 'r') as stream:
@@ -73,7 +76,7 @@ def main():
                         with open(metafile, 'r') as stream:
                             metaarray = yaml.load(stream)
                     except:
-                        logAndInform("Yaml meta file is broken or this is not a Yaml file!", msgtype="ERROR")
+                        logAndInform("Yaml meta file is broken or this is not a Yaml file! (Ref 1004)", msgtype="ERROR")
                         exit(100)
             # if metaarray:
             #     print ("-> " + str(metaarray))
@@ -91,72 +94,121 @@ def main():
             # --> print ("REMOVE BEFORE GOLIVE - Will ADD : " + file_changed)
             if re.match('^meta.yaml$', base_change):
                 if operator == 'A':
-                    do = "something"
+                    logAndInform("Detected ADD event: [" + file_changed + "]")
+                    logAndInform("  -> ADD OF THIS TYPE IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
                     # --> print (' ADD: Main meta.yaml was added. Figure out what to do!')
                 elif operator == 'D':
+                    logAndInform("Detected DELETE event: [" + file_changed + "]")
+                    logAndInform("  -> DELETE OF THIS TYPE IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
                     do = "something"
                     # --> print (' DELETED: Main meta.yaml was deleted. Figure out what to do!')
                 elif operator == 'R':
-                    do = "something"
+                    logAndInform("Detected RENAME event: [" + file_changed + "]")
+                    logAndInform("  -> RENAME IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
                     # --> print (' RENAMED: Main meta.yaml was renamed. Figure out what to do!')
                 elif operator == 'M':
-                    do = "something"
+                    logAndInform("Detected MODIFY event: [" + file_changed + "]")
+                    logAndInform("  -> MODIFY OF THIS TYPE IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
                     # --> print (' MODIFIED: Main meta.yaml was modified. Figure out what to do!')
             else:
-                # Which application component is being changed?
-                app_component   = file_changed.split("/")[1]           
-                if len(file_changed.split("/")) > 3:
-                    sub_component   = str('-'.join(file_changed.split("/")[2:-1])) + str('-')
+                if operator == 'R':
+                    splitthis = file_changed.split("\t")
                 else:
-                    sub_component   = ""
-                t               = datetime.datetime.now()
-                datestring      = str(t.strftime('%Y%d%m-%s'))
-                stackname       = gitbranchname + "-" + application + '-' + app_component + '-' + sub_component + datestring + '-' + runid
-    
-                if base_change == content_change:
-                    # The file changed lives in the root directory. I don't think we need to do anything.
-                    do = "Nothing. Maybe something in the future..."
-                else:
-                    logAndInform('Working on: Application['+application+']['+app_component+']: ' + content_change)
+                    splitthis = [file_changed]
+                logAndInform(" ++++> " + str(splitthis))
 
-                    # Check the config file and do the appropriate actions
-                    if re.search('^config\.y[a]{0,1}ml', content_change):
-                        logAndInform('Config file detected. Parsing [' + file_changed + ']')
-                        if validateConfig(file_changed):
-                            if operator == 'A':
-                                logAndInform("Running A")
-                                doCreateCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
-                            elif operator == 'D':
-                                doDeleteCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
-                            elif operator == 'M':
-                                do = "something"
-                            elif operator == 'R':
-                                do = "something"
-                            else:
-                                logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
-                        
+                counter = 0
+                while counter <= 1:
+                    if len(splitthis) > 1:
+                        if counter == 0:
+                            operator = 'A'
+                            file_changed = splitthis[1]
+                        elif counter == 1:
+                            operator = 'D'
+                            file_changed = splitthis[0]
+                        counter = counter +1
                     else:
-                        do = "something"
-                        # --> print ("THIS IS NOT AN APPROVED CHANGEFILE. INFORM USER/CHANNEL!!!")
-                    if content_change in cloudformationfiles or re.search("cloudformation", content_change):
-                        logAndInform('Cloudformation file detected. Parsing [' + file_changed + ']')
-                        # Do some tests to verify that all the elements of the cloudformation stack is present.
-                        if validateCloudformation(file_changed):
-                            #
-                            # TODO: Should be added to DynamoDB or run through a queue system (SQS?) ???
-                            #
-                            if operator == 'A':
-                                doAddCloudformation(file_changed, gitbranchname, stackname, region)
-                            elif operator == 'D':
-                                doDeleteCloudformation(file_changed, gitbranchname, stackname, region)
-                            elif operator == 'R':
-                                logAndInform("Detected RENAME event: [" + file_changed + "]")
-                                logAndInform("  -> RENAME IS NOT IMPLEMENTED YET <- ", msgtype="WARNING")
-                                # --> print ("There has been some renaming, but nothing else has changed. Check if new config files not exist and perform ADD. If not, see if we need to update any tags. If not, then ignore.")
-                            elif operator == 'M':
-                                doModifyCloudformation(file_changed, gitbranchname, stackname, region)
-                            else:
-                                logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
+                        counter = 9999 # <--- This will run only once, then break out of while loop
+                    logAndInform("   COUNTER : " + str(counter))
+                    # Which application component is being changed?
+                    app_component   = file_changed.split("/")[1]           
+                    app_component   = re.sub('\.y[a]{0,1}ml$|\.json$', '', app_component)
+                    app_component   = re.sub('[_]*cloudformation[_]*', '', app_component)
+                    logAndInform(" ------> WTF !!!!!!! : " + str(file_changed.split("/")))
+                    logAndInform(" ------> FILECHANGED !!!!!!! : " + str(file_changed))
+                    if len(file_changed.split("/")) >= 3:
+                        sub_component   = str('-'.join(file_changed.split("/")[2:]))
+                        logAndInform(" ------> S H O U T !!!!!!! : " + sub_component)
+                        logAndInform(" ------> Testing: " + sub_component)
+                        sub_component   = re.sub('\.y[a]{0,1}ml$|\.json$', '', sub_component)
+                        sub_component   = re.sub('[_]*cloudformation[_]*', '', sub_component)
+                        sub_component   = sub_component + str('-')
+                    else:
+                        sub_component   = ""
+                    logAndInform('App-Componenet -> ' + app_component, msgtype="DEBUG")
+                    logAndInform('Sub-Componenet -> ' + sub_component, msgtype="DEBUG")
+                    t               = datetime.datetime.now()
+                    datestring      = str(t.strftime('%Y%d%m-%s'))
+                    stackname       = gitbranchname + "-" + application + '-' + app_component + '-' + sub_component + datestring + '-' + runid
+    
+                    if base_change == content_change:
+                        # The file changed lives in the root directory. I don't think we need to do anything.
+                        do = "Nothing. Maybe something in the future..."
+                    else:
+                        logAndInform('Working on: Application['+application+']['+app_component+']')
+
+                        # Check the config file and do the appropriate actions
+                        if re.search('^' + filefilter  + '\.y[a]{0,1}ml$', content_change):
+                            logAndInform('Non-Cloudformation Config file detected. Parsing [' + file_changed + ']')
+                            if validateConfig(file_changed):
+                                if operator == 'A':
+                                    logAndInform("Running A")
+                                    doCreateCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
+                                elif operator == 'D':
+                                    doDeleteCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
+                                elif operator == 'M':
+                                    logAndInform("Detected MODIFU event: [" + file_changed + "]")
+                                    logAndInform("  -> MODIFU OF NON-CLOUDFORMATION FILE IS NOT IMPLEMENTED YET 54 <- ", msgtype="WARNING")
+                                elif operator == 'R':
+                                    splitthis = file_changed.split("\t") 
+                                    from_file = splitthis[0]
+                                    to_file   = splitthis[1]
+                                    logAndInform("Detected RENAME event: [" + file_changed + "]")
+                                    logAndInform("  -> RENAME OF NON-CLOUDFORMATION FILE IS NOT IMPLEMENTED YET 54 <- ", msgtype="WARNING")
+                                    logAndInform("  fromfile  : " + from_file, msgtype="WARNING")
+                                    logAndInform("  tofile    : " + to_file, msgtype="WARNING")
+                                    logAndInform("  gitbname  : " + gitbranchname, msgtype="WARNING")
+                                    logAndInform("  stackname : " + stackname, msgtype="WARNING")
+                                    logAndInform("  region    : " + region, msgtype="WARNING")
+                                    logAndInform("  piss      : " + str(splitthis), msgtype="WARNING")
+                                    doCreateCloudformationFromConfig(to_file, gitbranchname, stackname, region)
+                                    # TODO -> Ensure the new badboy is created before deleting the old one
+                                    doDeleteCloudformationFromConfig(from_file, gitbranchname, stackname, region)
+                                else:
+                                    logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
+                            
+                        else:
+                            do = "something"
+                            # --> print ("THIS IS NOT AN APPROVED CHANGEFILE. INFORM USER/CHANNEL!!!")
+                        if content_change in cloudformationfiles or re.search("cloudformation", content_change):
+                            logAndInform('Cloudformation file detected. Parsing [' + file_changed + ']')
+                            # Do some tests to verify that all the elements of the cloudformation stack is present.
+                            if validateCloudformation(file_changed):
+                                #
+                                # TODO: Should be added to DynamoDB or run through a queue system (SQS?) ???
+                                #
+                                if operator == 'A':
+                                    doAddCloudformation(file_changed, gitbranchname, stackname, region)
+                                elif operator == 'D':
+                                    doDeleteCloudformation(file_changed, gitbranchname, stackname, region)
+                                elif operator == 'R':
+                                    logAndInform("Detected RENAME event: [" + file_changed + "]")
+                                    logAndInform("  -> RENAME IS NOT IMPLEMENTED YET 66 <- ", msgtype="WARNING")
+                                    # --> print ("There has been some renaming, but nothing else has changed. Check if new config files not exist and perform ADD. If not, see if we need to update any tags. If not, then ignore.")
+                                elif operator == 'M':
+                                    doModifyCloudformation(file_changed, gitbranchname, stackname, region)
+                                else:
+                                    logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
         else:
             if not re.match('^\s*$', change):
                 logAndInform("Found no operator!. Error 16", msgtype="ERROR")
@@ -187,26 +239,31 @@ def validateCloudformation(cffile):
     if path.isfile(cffile):    # Need to check if file exists. If DELETE or MODIFY command, then file may be deleted
         if re.search('\.y[a]{0,1}ml$', cffile):
             logAndInform("Detected YAML file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
-        elif re.match('\.json', cffile):
+        elif re.match('\.json$', cffile):
             logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
     logAndInform("Validation of Cloudformation is not fully implemented at this time!!! Current value is: " + str(returnvalue), msgtype="WARNING")
     return returnvalue
 
 def doAddCloudformation(cloudformationfile, account, name, region):  
-    #logAndInform("cff: " + cloudformationfile, msgtype="--------->")
-    #logAndInform("name: " + name, msgtype="--------->")
-    logAndInform("Detected ADD event: [" + cloudformationfile + "]")
-    logAndInform("Creating new Cloudformation stack: [" + cloudformationfile + "]")
-    try:
-        # TODO!!
-        # Do some logic checing of the cloudformation file to ensure that it is valid!
-        newdeploy = check_output(['aws', '--profile', account, 'cloudformation', 'create-stack', '--stack-name', name, '--tags', 'Key="'+creationkeystring+'",Value="'+ cloudformationfile +'"',  '--region', region, '--template-body', 'file://'+cloudformationfile])
-    except:
-        logAndInform("Something was catched in ERROR. 166", msgtype="ERROR")
-    newdeployoutput = str(newdeploy.decode())
-    logAndInform(str(newdeploy.decode()))
-    for _line in newdeployoutput.split("\n"):
-        logAndInform(" # " + _line)
+    # Only Create if the cloudformationfile actually ends with yaml, yml or json
+    if re.search('\.y[a]{0,1}ml$|\.json$', cloudformationfile):
+        #logAndInform("cff: " + cloudformationfile, msgtype="--------->")
+        #logAndInform("name: " + name, msgtype="--------->")
+        logAndInform("Detected ADD event: [" + cloudformationfile + "]")
+        logAndInform("Creating new Cloudformation stack: [" + cloudformationfile + "]")
+        try:
+            # TODO!!
+            # Do some logic checing of the cloudformation file to ensure that it is valid!
+            newdeploy = check_output(['aws', '--profile', account, 'cloudformation', 'create-stack', '--stack-name', name, '--tags', 'Key="'+creationkeystring+'",Value="'+ cloudformationfile +'"',  '--region', region, '--template-body', 'file://'+cloudformationfile])
+        except:
+            logAndInform("Something was caught in ERROR. 166", msgtype="ERROR")
+            newdeploy = '{"Message": "I dont think AWS liked this cloudformation file..."}'.encode()
+        newdeployoutput = str(newdeploy.decode())
+        logAndInform(str(newdeploy.decode()))
+        for _line in newdeployoutput.split("\n"):
+            logAndInform(" # " + _line)
+    else:
+        newdeploy = '{"message": "Will not create cloudformation file ref: 177."}'
 
     return newdeploy
 
@@ -284,6 +341,7 @@ def validateConfig(configfile):
 def doCreateCloudformationFromConfig(configfile, account, name, region):
     logAndInform("Performing doCreateCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
     logAndInform(" CREATE config not implemented yet", msgtype="WARNING")
+    # logAndInform(" ----> " + metaarray)
 
     # Extract the yaml data from the config file
     metaarray = ""
@@ -291,7 +349,7 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
         with open(configfile, 'r') as stream:
             metaarray = yaml.load(stream)
     except:
-        logAndInform("Yaml config file ["+str(configfile)+"] is broken or this is not a Yaml file!", msgtype="ERROR")
+        logAndInform("Yaml config file ["+str(configfile)+"] is broken or this is not a Yaml file! (Ref 1003)", msgtype="ERROR")
         exit(101)
 
     newtempfile = tempfile.mkstemp()
