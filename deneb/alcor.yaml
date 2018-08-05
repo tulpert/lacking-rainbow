@@ -21,8 +21,8 @@ Resources:
                 -
                     Key: Service
                     Value: tanga
-            UserData: 
-                "Fn::Base64": !Sub |
-                    #!/bin/bash
-                    echo "hello" > /tmp/hello.txt
-                    echo "sir" >> /tmp/hello.txt
+#             UserData: 
+#                 "Fn::Base64": !Sub |
+#                     #!/bin/bash
+#                     echo "hello" > /tmp/hello.txt
+#                     echo "sir" >> /tmp/hello.txt
