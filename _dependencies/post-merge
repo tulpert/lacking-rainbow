@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import re
 import sys
 import time
@@ -34,7 +35,9 @@ filefilter              = '[a-zA-Z0-9]+'
 def main():
     # We are currently working in branch $branchname
     logAndInform ("Starting run id ["+runid+"]. Working in: " + gitbranchname)
-    
+
+    myconfig = dict()
+
     changes = check_output(['git', 'diff', '--name-status', 'HEAD@{1}'])
     logAndInform('GitDiff: ' + str(changes))
     change_array = str(changes.decode()).split("\n")
@@ -52,35 +55,6 @@ def main():
                 logAndInform('Content     -> ' + content_change, msgtype="DEBUG")
                 logAndInform('Base_change -> ' + base_change, msgtype="DEBUG")
                 logAndInform('Application -> ' + application, msgtype="DEBUG")
-    
-            # Read the application meta files
-            metafile = 0
-            for mf in metafiles:
-                if path.isfile(str(mf)):
-                    metafile = mf 
-                    break
-            if metafile:
-                # if debug:
-                    #  --> print ("Found Metafile: " + metafile)
-                if re.match('.+\.json$', metafile):
-                    # Read JSON data
-                    try:
-                        with open(metafile, 'r') as stream:
-                            metaarray = json.load(stream)
-                    except:
-                        logAndInform("JSON meta file is broken or this is not a JSON file!", msgtype="ERROR")
-                        exit(100)
-                else:
-                    # Read YAML data
-                    try:
-                        with open(metafile, 'r') as stream:
-                            metaarray = yaml.load(stream)
-                    except:
-                        logAndInform("Yaml meta file is broken or this is not a Yaml file! (Ref 1004)", msgtype="ERROR")
-                        exit(100)
-            # if metaarray:
-            #     print ("-> " + str(metaarray))
-    
     
             # Check the operator. 
             # M = Modified -> Will require reprovisioning
@@ -129,19 +103,14 @@ def main():
                         counter = counter +1
                     else:
                         counter = 9999 # <--- This will run only once, then break out of while loop
-                    logAndInform("   COUNTER : " + str(counter))
                     # Which application component is being changed?
                     app_component   = file_changed.split("/")[1]           
                     app_component   = re.sub('\.y[a]{0,1}ml$|\.json$', '', app_component)
-                    app_component   = re.sub('[_]*cloudformation[_]*', '', app_component)
-                    logAndInform(" ------> WTF !!!!!!! : " + str(file_changed.split("/")))
-                    logAndInform(" ------> FILECHANGED !!!!!!! : " + str(file_changed))
+                    app_component   = re.sub('[-_]*cloudformation[-_]*', '', app_component)
                     if len(file_changed.split("/")) >= 3:
                         sub_component   = str('-'.join(file_changed.split("/")[2:]))
-                        logAndInform(" ------> S H O U T !!!!!!! : " + sub_component)
-                        logAndInform(" ------> Testing: " + sub_component)
                         sub_component   = re.sub('\.y[a]{0,1}ml$|\.json$', '', sub_component)
-                        sub_component   = re.sub('[_]*cloudformation[_]*', '', sub_component)
+                        sub_component   = re.sub('[-_]*cloudformation[-_]*', '', sub_component)
                         sub_component   = sub_component + str('-')
                     else:
                         sub_component   = ""
@@ -150,6 +119,8 @@ def main():
                     t               = datetime.datetime.now()
                     datestring      = str(t.strftime('%Y%d%m-%s'))
                     stackname       = gitbranchname + "-" + application + '-' + app_component + '-' + sub_component + datestring + '-' + runid
+                    # Stackname must must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
+                    stackname       = re.sub('_', '', stackname)
     
                     if base_change == content_change:
                         # The file changed lives in the root directory. I don't think we need to do anything.
@@ -343,7 +314,51 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
     logAndInform(" CREATE config not implemented yet", msgtype="WARNING")
     # logAndInform(" ----> " + metaarray)
 
-    # Extract the yaml data from the config file
+    # Extract the yaml data from the config file(s) in the path
+    #         # Read the application meta files
+    #         # OPTIMIZATION: Do we really need to load meta-file if DELETE is the action?
+    #         metafile = 0
+    #         for mf in metafiles:
+    #             if path.isfile(str(mf)):
+    #                 metafile = mf 
+    #                 break
+    #         if metafile:
+    #             # Create an empty placeholder variable in case loading contents fails.
+    #             metaarray = dict()
+    #             if re.match('.+\.json$', metafile):
+    #                 # Read JSON data
+    #                 try:
+    #                     with open(metafile, 'r') as stream:
+    #                         metaarray = json.load(stream)
+    #                 except:
+    #                     logAndInform("JSON meta file is broken or this is not a JSON file!", msgtype="ERROR")
+    #                     exit(100)
+    #             else:
+    #                 # Read YAML data
+    #                 try:
+    #                     with open(metafile, 'r') as stream:
+    #                         metaarray = yaml.load(stream)
+    #                 except:
+    #                     logAndInform("Yaml meta file is broken or this is not a Yaml file! (Ref 1004)", msgtype="ERROR")
+    #                     exit(100)
+    #             myconfig = dict(myconfig, **metaarray)
+    
+    myconfig = dict()
+    logAndInform("    ----> Configfile: "  + configfile, msgtype="DEBUG")
+    mypath = ''
+    for i in configfile.split('/'):
+        testmetafile = str(mypath + 'meta.yaml')
+        logAndInform("    ----> SUBConfigfile: ["  + mypath + 'meta.yaml' + ']', msgtype="DEBUG")
+        if os.path.isfile(testmetafile):
+            metaarray = dict()
+            try:
+                with open(testmetafile, 'r') as stream:
+                    metaarray = yaml.load(stream)
+            except:
+                logAndInform("Could not load meta file [" + str(testmetafile) + "]. Error ref 889")
+            myconfig = dict(myconfig, **metaarray)      # Add two dicts together (The new overwrites the old of two keys are the same!)
+        mypath = mypath + i + '/'
+    logAndInform("Contents of META : " + str(myconfig), msgtype="DEBUG")
     metaarray = ""
     try:
         with open(configfile, 'r') as stream:
