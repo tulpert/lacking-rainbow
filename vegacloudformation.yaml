@@ -1,0 +1,20 @@
+Resources:
+    mysschnarf:
+        Type: AWS::EC2::Instance
+        Properties: 
+            InstanceInitiatedShutdownBehavior: stop
+            KeyName: DenebMGMTClients
+            Monitoring: false
+            AvailabilityZone: eu-west-2a
+            ImageId: ami-924aa8f5
+            InstanceType: t2.micro
+            SecurityGroupIds:
+               - sg-09e63b2fe04695925
+            SubnetId: subnet-03eb7e27cebefc3e4
+            Tags:
+                -
+                    Key: Service
+                    Value: tanga
+                -
+                    Key: Name
+                    Value: fistbump
