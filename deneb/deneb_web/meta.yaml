@@ -10,3 +10,4 @@ region:         eu-west-10
 #     region:         eu-west-2
 #     aws-linux2:     ami-924aa8f5
 #     instancetype:   t2.micro
+
