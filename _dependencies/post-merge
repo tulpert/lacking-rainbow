@@ -13,7 +13,8 @@ import tempfile
 from os import path
 from subprocess import check_output
 
-debug = True
+debug                   = True
+deletetmpfileonfinish   = False
 
 fullpath                = path.abspath(__file__)
 shortpath               = (__file__)
@@ -46,11 +47,13 @@ def main():
         change = str(i)
         if re.match('^[A-Z]\d*\s+', change):
             logAndInform("FILE BEING CHANGED: " + i, msgtype="DEBUG")
-            operator        = change[0]                                 # The operator is A (Added), M (Modified), D (Deleted) or R (Renamed)
-            file_changed    = re.sub('^\s*[A-Z]\d*\s*', '', change)     # The file changed (full path from basedir). i.e. app/app-component/cloudformation.yaml
-            base_change     = re.sub('\/.*$', '', file_changed)         # The base of the change. Either a file (because it was in basedir) or the directory name. i.e. app
-            content_change  = re.sub('.*[/]', '', file_changed)         # The content changed. This will be the config file in an application component. i.e. 
-            application     = re.sub('\/.*$', '', base_change)          # The application is the highest directory name. Can be similar to base_change sometimes
+            operator        = change[0]                                     # The operator is A (Added), M (Modified), D (Deleted) or R (Renamed)
+            file_changed    = re.sub('^\s*[A-Z]\d*\s*', '', change)         # The file changed (full path from basedir). i.e. app/app-component/cloudformation.yaml
+            base_change     = re.sub('\/.*$', '', file_changed)             # The base of the change. Either a file (because it was in basedir) or the directory name. i.e. app
+            content_change  = re.sub('.*[/]', '', file_changed)             # The content changed. This will be the config file in an application component. i.e. 
+            application     = re.sub('\/.*$', '', base_change)              # The application is the highest directory name. Can be similar to base_change sometimes
+            application = re.sub('\.y[a]{0,1}ml|\.json', '', application)   # If the application is in base folder it might contain the file suffix. Remove it!
+
             if debug:
                 logAndInform('Content     -> ' + content_change, msgtype="DEBUG")
                 logAndInform('Base_change -> ' + base_change, msgtype="DEBUG")
@@ -119,11 +122,13 @@ def main():
                     stackname       = gitbranchname + "-" + application + '-' + app_component + '-' + sub_component + datestring + '-' + runid
                     # Stackname must must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*
                     stackname       = re.sub('_', '', stackname)
+                    # logAndInform('       /////////////////////    ' + str(stackname)) 
     
-                    if base_change == content_change:
-                        # The file changed lives in the root directory. I don't think we need to do anything.
-                        do = "Nothing. Maybe something in the future..."
-                    else:
+                    # if base_change == content_change:
+                    #     # The file changed lives in the root directory. I don't think we need to do anything.
+                    #     do = "Nothing. Maybe something in the future..."
+                    # else:
+                    if True:
                         logAndInform('Working on: Application['+application+']['+app_component+']')
 
                         # Check the config file and do the appropriate actions
@@ -178,6 +183,7 @@ def main():
                                     doModifyCloudformation(file_changed, gitbranchname, stackname, region)
                                 else:
                                     logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
+            logAndInform("----- Finished with [" + file_changed + "] -----", msgtype="DEBUG")
         else:
             if not re.match('^\s*$', change):
                 logAndInform("Found no operator!. Error 16", msgtype="ERROR")
@@ -194,8 +200,8 @@ def logAndInform(message, email=True, teams=True, logfile=logfilepath, msgtype='
             w=open(logfilepath, 'a')
             w.write(datestring + ' ['+str(msgtype)+'] ['+runid+'] ' + str(message) + "\n")
             w.close()
-        except:
-            print (datestring + " [ERROR] ["+runid+"] Could not write message to logfile! Error 1144")
+        except Exception as e:
+            print (datestring + " [ERROR] ["+runid+"] Could not write message to logfile! Error 1144. Message: " + str(e))
     
 def validateCloudformation(cffile):
     # This function will read through the cloudformation file and verify
@@ -219,13 +225,13 @@ def doAddCloudformation(cloudformationfile, account, name, region):
         #logAndInform("cff: " + cloudformationfile, msgtype="--------->")
         #logAndInform("name: " + name, msgtype="--------->")
         logAndInform("Detected ADD event: [" + cloudformationfile + "]")
-        logAndInform("Creating new Cloudformation stack: [" + cloudformationfile + "]")
+        logAndInform("Creating new Cloudformation stack: [" + cloudformationfile + "] with name [" + name + "]")
         try:
             # TODO!!
             # Do some logic checing of the cloudformation file to ensure that it is valid!
             newdeploy = check_output(['aws', '--profile', account, 'cloudformation', 'create-stack', '--stack-name', name, '--tags', 'Key="'+creationkeystring+'",Value="'+ cloudformationfile +'"',  '--region', region, '--template-body', 'file://'+cloudformationfile])
-        except:
-            logAndInform("Something was caught in ERROR. 166", msgtype="ERROR")
+        except Exception as e:
+            logAndInform("Something was caught in ERROR. Coderef 166. Message: " + str(e), msgtype="ERROR")
             newdeploy = '{"Message": "I dont think AWS liked this cloudformation file..."}'.encode()
         newdeployoutput = str(newdeploy.decode())
         logAndInform(str(newdeploy.decode()))
@@ -322,8 +328,8 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
             try:
                 with open(testmetafile, 'r') as stream:
                     metaarray = yaml.load(stream)
-            except:
-                logAndInform("Could not load meta file [" + str(testmetafile) + "]. Error ref 889")
+            except Exception as e:
+                logAndInform("Could not load meta file [" + str(testmetafile) + "]. Error ref 889. Message: " + str(e), msgtype="ERROR")
             myconfig = dict(myconfig, **metaarray)      # Add two dicts together (The new overwrites the old of two keys are the same!)
         mypath = mypath + i + '/'
     logAndInform("Contents of META : " + str(myconfig), msgtype="DEBUG")
@@ -331,8 +337,8 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
     try:
         with open(configfile, 'r') as stream:
             metaarray = yaml.load(stream)
-    except:
-        logAndInform("Yaml config file ["+str(configfile)+"] is broken or this is not a Yaml file! (Ref 1003)", msgtype="ERROR")
+    except Exception as e:
+        logAndInform("Yaml config file ["+str(configfile)+"] is broken or this is not a Yaml file! Coderef 1003. Message: " + str(e), msgtype="ERROR")
         exit(101)
 
     # Add the configfile yaml content to the myconfig Dict
@@ -347,7 +353,8 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
         templatefile = open(newtempfilename, "w")
         templatefile.write(str(yaml.dump(myconfig)))
         templatefile.close()
-        # os.unlink(newtempfilename)
+        if deletetmpfileonfinish:
+            os.unlink(newtempfilename)
     except Exception as e:
         logAndInform("Could not create temp config file. Coderef 766. Message: " + str(e), msgtype="ERROR")
 
