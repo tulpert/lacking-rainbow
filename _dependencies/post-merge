@@ -42,15 +42,15 @@ def main():
     logAndInform('GitDiff: ' + str(changes))
     change_array = str(changes.decode()).split("\n")
     for i in change_array:
-        logAndInform("FILE BEING CHANGED: " + i)
-        change = str(i)
         # Run through the status of the files which have been updated
+        change = str(i)
         if re.match('^[A-Z]\d*\s+', change):
-            operator        = change[0]                             # The operator is A (Added), M (Modified), D (Deleted) or R (Renamed)
-            file_changed    = re.sub('^\s*[A-Z]\d*\s*', '', change)    # The file changed (full path from basedir). i.e. app/app-component/cloudformation.yaml
-            base_change     = re.sub('\/.*$', '', file_changed)        # The base of the change. Either a file (because it was in basedir) or the directory name. i.e. app
-            content_change  = re.sub('.*[/]', '', file_changed)        # The content changed. This will be the config file in an application component. i.e. 
-            application     = re.sub('\/.*$', '', base_change)         # The application is the highest directory name. Can be similar to base_change sometimes
+            logAndInform("FILE BEING CHANGED: " + i, msgtype="DEBUG")
+            operator        = change[0]                                 # The operator is A (Added), M (Modified), D (Deleted) or R (Renamed)
+            file_changed    = re.sub('^\s*[A-Z]\d*\s*', '', change)     # The file changed (full path from basedir). i.e. app/app-component/cloudformation.yaml
+            base_change     = re.sub('\/.*$', '', file_changed)         # The base of the change. Either a file (because it was in basedir) or the directory name. i.e. app
+            content_change  = re.sub('.*[/]', '', file_changed)         # The content changed. This will be the config file in an application component. i.e. 
+            application     = re.sub('\/.*$', '', base_change)          # The application is the highest directory name. Can be similar to base_change sometimes
             if debug:
                 logAndInform('Content     -> ' + content_change, msgtype="DEBUG")
                 logAndInform('Base_change -> ' + base_change, msgtype="DEBUG")
@@ -66,24 +66,20 @@ def main():
             # * Is it single component?
             # * What type of deployment?
             # --> print ("REMOVE BEFORE GOLIVE - Will ADD : " + file_changed)
-            if re.match('^meta.yaml$', base_change):
+            if re.match('^meta.yaml$', content_change.lower()):
                 if operator == 'A':
                     logAndInform("Detected ADD event: [" + file_changed + "]")
-                    logAndInform("  -> ADD OF THIS TYPE IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
-                    # --> print (' ADD: Main meta.yaml was added. Figure out what to do!')
+                    logAndInform("  -> ADD OF THIS TYPE (Meta.yaml) IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
                 elif operator == 'D':
                     logAndInform("Detected DELETE event: [" + file_changed + "]")
-                    logAndInform("  -> DELETE OF THIS TYPE IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
-                    do = "something"
-                    # --> print (' DELETED: Main meta.yaml was deleted. Figure out what to do!')
+                    logAndInform("  -> DELETE OF THIS TYPE (Meta.yaml) IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
                 elif operator == 'R':
                     logAndInform("Detected RENAME event: [" + file_changed + "]")
-                    logAndInform("  -> RENAME IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
-                    # --> print (' RENAMED: Main meta.yaml was renamed. Figure out what to do!')
+                    logAndInform("  -> RENAME (Meta.yaml) IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
                 elif operator == 'M':
                     logAndInform("Detected MODIFY event: [" + file_changed + "]")
-                    logAndInform("  -> MODIFY OF THIS TYPE IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
-                    # --> print (' MODIFIED: Main meta.yaml was modified. Figure out what to do!')
+                    logAndInform("  -> MODIFY OF THIS TYPE (Meta.yaml) IS NOT IMPLEMENTED YET 50 <- ", msgtype="WARNING")
+                logAndInform("  ->  --- Maybe we should do nothing when adding/changing meta.yaml files. Discuss! ---  <- ", msgtype="WARNING")
             else:
                 if operator == 'R':
                     splitthis = file_changed.split("\t")
@@ -104,7 +100,9 @@ def main():
                     else:
                         counter = 9999 # <--- This will run only once, then break out of while loop
                     # Which application component is being changed?
-                    app_component   = file_changed.split("/")[1]           
+                    app_component   = ''
+                    if re.search('\/', file_changed):
+                        app_component   = file_changed.split("/")[1]           
                     app_component   = re.sub('\.y[a]{0,1}ml$|\.json$', '', app_component)
                     app_component   = re.sub('[-_]*cloudformation[-_]*', '', app_component)
                     if len(file_changed.split("/")) >= 3:
@@ -312,36 +310,6 @@ def validateConfig(configfile):
 def doCreateCloudformationFromConfig(configfile, account, name, region):
     logAndInform("Performing doCreateCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
     logAndInform(" CREATE config not implemented yet", msgtype="WARNING")
-    # logAndInform(" ----> " + metaarray)
-
-    # Extract the yaml data from the config file(s) in the path
-    #         # Read the application meta files
-    #         # OPTIMIZATION: Do we really need to load meta-file if DELETE is the action?
-    #         metafile = 0
-    #         for mf in metafiles:
-    #             if path.isfile(str(mf)):
-    #                 metafile = mf 
-    #                 break
-    #         if metafile:
-    #             # Create an empty placeholder variable in case loading contents fails.
-    #             metaarray = dict()
-    #             if re.match('.+\.json$', metafile):
-    #                 # Read JSON data
-    #                 try:
-    #                     with open(metafile, 'r') as stream:
-    #                         metaarray = json.load(stream)
-    #                 except:
-    #                     logAndInform("JSON meta file is broken or this is not a JSON file!", msgtype="ERROR")
-    #                     exit(100)
-    #             else:
-    #                 # Read YAML data
-    #                 try:
-    #                     with open(metafile, 'r') as stream:
-    #                         metaarray = yaml.load(stream)
-    #                 except:
-    #                     logAndInform("Yaml meta file is broken or this is not a Yaml file! (Ref 1004)", msgtype="ERROR")
-    #                     exit(100)
-    #             myconfig = dict(myconfig, **metaarray)
     
     myconfig = dict()
     logAndInform("    ----> Configfile: "  + configfile, msgtype="DEBUG")
@@ -367,12 +335,29 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
         logAndInform("Yaml config file ["+str(configfile)+"] is broken or this is not a Yaml file! (Ref 1003)", msgtype="ERROR")
         exit(101)
 
-    newtempfile = tempfile.mkstemp()
-    templatefile = open(str(templatedir + "/ec2.template"), "r")
-    print ("====> " + str(templatefile))
-    templatefile.close()
+    # Add the configfile yaml content to the myconfig Dict
+    myconfig = dict(myconfig, **metaarray)
+    logAndInform("Contents of MYCONFIG after merge : " + str(myconfig), msgtype="DEBUG")
 
-    doAddCloudformation(configfile, account, name, region)
+    newtempfile = tempfile.mkstemp(prefix="orch_runid_" + str(runid) + "_")
+    
+    try:
+        newtempfilename = str(newtempfile[1])
+        logAndInform("TEMPFILE     -> " + newtempfilename, msgtype="DEBUG")
+        templatefile = open(newtempfilename, "w")
+        templatefile.write(str(yaml.dump(myconfig)))
+        templatefile.close()
+        # os.unlink(newtempfilename)
+    except Exception as e:
+        logAndInform("Could not create temp config file. Coderef 766. Message: " + str(e), msgtype="ERROR")
+
+    # Here is where we call external YAML Generator. I.e. ansible, terraform etc
+    if os.path.isfile(newtempfilename):
+        mycmd = ['run', 'this', 'command', 'on', 'tmpfile', newtempfilename]
+        try:
+            logAndInform("RUN: " + str(' '.join(mycmd)), msgtype="COMMAND")
+        except Exception as e:
+            logAndInform("Code ref 942. Message: " + str(e), msgtype="ERROR")
     
 def doDeleteCloudformationFromConfig(configfile, account, name, region):
     logAndInform("Performing doDeleteCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
