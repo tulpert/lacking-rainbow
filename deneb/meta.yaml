@@ -1,1 +1,7 @@
+vpc:            vpc-dmz
+subnet:         sub-bastion-c
+instance-type:  t2.micro
+az: a
+
+
 
