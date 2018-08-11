@@ -21,6 +21,7 @@ runpath                 = '/opt/orchestration'      # Path to where the codebase
 logfilepath             = '/tmp/logfile'            # Your friendly neighborhood log file
 runfile                 = runpath + '/.orchrun'     # This is used to keep track of when the last git pull took place
 cloudformationregex     = 'cloudformation';         # A regex. If file contains this string, then expect cloudformation content and deploy directly
+goodinstancetypes       = ['t2.micro']
 
 # Functional variables. Edit at your own risk
 fullpath                = path.abspath(__file__)
@@ -222,7 +223,7 @@ def main():
 
 
 def logAndInform(message, nologfile=False, email=False, teams=False, logfile=logfilepath, msgtype='INFO'):
-    if not msgtype.lower() == "debug":
+    if not msgtype.lower() == "debug" or debug:
         t = datetime.datetime.now() - datetime.timedelta(seconds=4)             # Each git pull takes on average x seconds. This is a guestimate
         datestring = str(t.strftime('%m %b %Y %H:%M:%S (UTC?)'))
         my_message = datestring + ' ['+str(msgtype).upper()+'] ['+runid+'] ' + str(message) + "\n"
@@ -249,9 +250,9 @@ def validateCloudformation(cffile):
     # * Name tag exists
     # Is valid YAML - OK
     # Is valid JSON - Written code. Must be tested!
-
     returnvalue = True
     if path.isfile(cffile):    # Need to check if file exists. If DELETE or MODIFY command, then file may be deleted
+        logAndInform("Validating file: " + str(cffile), msgtype=" I S    F I L E ")
         if re.search('\.y[a]{0,1}ml$', cffile):
             logAndInform("Detected YAML file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
             try:
@@ -264,6 +265,7 @@ def validateCloudformation(cffile):
                 logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e), msgtype="ERROR")
                 returnvalue = False
         elif re.match('\.json$', cffile):
+            logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
             try:
                 with open(cffile, "r") as stream:
                     _tmp = json.load(cffile)
@@ -274,12 +276,28 @@ def validateCloudformation(cffile):
                 logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e))
                 returnvalue = False
             logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
+        else:
+            logAndInform("Cloudformation file is neither YAML or JSON. Cannot continue.", msgtype="DEBUG")
+        if isinstance(_tmp, dict):
+            if "Resources" in _tmp.keys():
+                for resource in _tmp["Resources"].keys():
+                    r = _tmp["Resources"][resource]["Properties"]
+                    for p in r.keys():
+                        if not str(r["InstanceType"]).lower() in goodinstancetypes:
+                            returnvalue = False
+                            logAndInform("Tried to provision unapproved instance type: " + r["InstanceType"], msgtype="FAILURE")
+            else:
+                logAndInform("Missing `Resources` key in cloudformation", msgtype="FAILURE")
+        else:
+            returnvalue = False
+            logAndInform("Validation could not load the contents of cloudformation. Coderef 1710")
+        logAndInform("Testing DICT: " + str(_tmp), msgtype="---------------->")
     logAndInform("Validation of Cloudformation is not fully implemented at this time!!! Current value is: " + str(returnvalue), msgtype="WARNING")
     return returnvalue
 
 def doAddCloudformation(cloudformationfile, account, name, region):  
-    # Only Create if the cloudformationfile actually ends with yaml, yml or json
     newdeploy = '{"message": "Will not create cloudformation file. Coderef 1770."}'
+    # Only Create if the cloudformationfile actually ends with yaml, yml or json
     if re.search('\.y[a]{0,1}ml$|\.json$', cloudformationfile):
         if validateCloudformation(cloudformationfile):        # Checking if cloudformationfile has valid formatting, namingstandard and compliant
             logAndInform("Detected ADD event: [" + cloudformationfile + "]")
@@ -293,7 +311,6 @@ def doAddCloudformation(cloudformationfile, account, name, region):
             logAndInform(str(newdeploy.decode()), msgtype="DEBUG")
             for _line in newdeployoutput.split("\n"):
                 logAndInform(" # " + _line, msgtype="DEBUG")
-
     return newdeploy
 
 def doModifyCloudformation(cloudformationfile, account, name, region):
