@@ -5,7 +5,7 @@ sleep 1
 git rm deneb_web/ilius-cloudformation.yaml ; git commit -m"Removing Ilius"; git push origin dev
 git rm deneb_web/vega-cloudformation.yaml ; git commit -m"Removing Vega"; git push origin dev
 sleep 1
-cp ../yaml.template/trialofconfig.yaml; git add trialofconfig.yaml; git commit -m"Added Trial of config file"
+cp ../yaml.template trialofconfig.yaml; git add trialofconfig.yaml; git commit -m"Added Trial of config file"
 git rm redub-cloudformation.yaml; git commit -m"Removing broken redub-cloudformation.yaml"; git push origin dev
 sleep 1
 cp mizar_cloudformation.yaml_DELETE mizar_cloudformation.yaml; git add mizar_cloudformation.yaml; git commit -m"Adding Mizar"; git push origin dev
