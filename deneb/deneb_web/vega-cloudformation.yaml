@@ -1,13 +1,13 @@
 Resources:
-    mysschnarf:
+    vega:
         Type: AWS::EC2::Instance
         Properties: 
-            AvailabilityZone: eu-west-2a
-            ImageId: ami-924aa8f5
-            InstanceInitiatedShutdownBehavior: stop
             InstanceType: t2.micro
             KeyName: DenebMGMTClients
             Monitoring: false
+            AvailabilityZone: eu-west-2a
+            ImageId: ami-924aa8f5
+            InstanceInitiatedShutdownBehavior: stop
             SecurityGroupIds:
                - sg-09e63b2fe04695925
             SubnetId: subnet-03eb7e27cebefc3e4
