@@ -5,3 +5,4 @@ aws-linux2:     ami-924aa8f5
 instancetype:   t2.micro
 
 
+
