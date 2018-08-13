@@ -13,12 +13,13 @@ import tempfile
 from os import path
 from subprocess import check_output
 
-debug                   = False
+debug                   = True
 deletetmpfileonfinish   = False
 
 # Run variables. Edit at your own leisure
 runpath                 = '/opt/orchestration'      # Path to where the codebase lives. Usually home directory of the service user
 logfilepath             = '/tmp/logfile'            # Your friendly neighborhood log file
+logfilepath             = '/var/www/html/schnarf'
 runfile                 = runpath + '/.orchrun'     # This is used to keep track of when the last git pull took place
 cloudformationregex     = 'cloudformation';         # A regex. If file contains this string, then expect cloudformation content and deploy directly
 goodinstancetypes       = ['t2.micro']
@@ -166,12 +167,13 @@ def main():
                     if re.search('^' + filefilter  + '\.y[a]{0,1}ml$', content_change):
                         logAndInform('Non-Cloudformation Config file detected. Parsing [' + file_changed + ']')
                         if operator == 'A':
-                             doCreateCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
+                             tmp = doAddCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
                         elif operator == 'D':
                             doDeleteCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
                         elif operator == 'M':
-                            logAndInform("Detected MODIFU event: [" + file_changed + "]")
-                            logAndInform("  -> MODIFU OF NON-CLOUDFORMATION FILE IS NOT IMPLEMENTED YET 54 <- ", msgtype="WARNING")
+                            # logAndInform("Detected MODIFU event: [" + file_changed + "]")
+                            # logAndInform("  -> MODIFU OF NON-CLOUDFORMATION FILE IS NOT IMPLEMENTED YET 54 <- ", msgtype="WARNING")
+                            doModifyCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
                         elif operator == 'R':
                             splitthis = file_changed.split("\t") 
                             from_file = splitthis[0]
@@ -184,13 +186,13 @@ def main():
                             logAndInform("  stackname : " + stackname, msgtype="WARNING")
                             logAndInform("  region    : " + region, msgtype="WARNING")
                             logAndInform("  piss      : " + str(splitthis), msgtype="WARNING")
-                            doCreateCloudformationFromConfig(to_file, gitbranchname, stackname, region)
+                            tmp = doAddCloudformationFromConfig(to_file, gitbranchname, stackname, region)
                             # TODO -> Ensure the new badboy is created before deleting the old one
                             doDeleteCloudformationFromConfig(from_file, gitbranchname, stackname, region)
                         else:
                             logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
                         
-                    elif re.search(cloudformationregex, content_change):
+                    elif re.search(cloudformationregex, content_change) and re.search('\.y[a]{0,1}ml$|\.json$', content_change):
                         # We've detected a fully fledged cloudformation file.
                         logAndInform('Cloudformation file detected. Parsing [' + file_changed + ']')
                         #
@@ -219,6 +221,7 @@ def main():
             if not re.match('^\s*$', change):
                 logAndInform("Found no operator!. Error 16", msgtype="ERROR")
     logAndInform("Finished run id ["+runid+"]!")
+    logAndInform(" -----  END ----- ")
     
 
 
@@ -252,7 +255,7 @@ def validateCloudformation(cffile):
     # Is valid JSON - Written code. Must be tested!
     returnvalue = True
     if path.isfile(cffile):    # Need to check if file exists. If DELETE or MODIFY command, then file may be deleted
-        logAndInform("Validating file: " + str(cffile), msgtype=" I S    F I L E ")
+        # logAndInform("Validating file: " + str(cffile), msgtype=" I S    F I L E ")
         if re.search('\.y[a]{0,1}ml$', cffile):
             logAndInform("Detected YAML file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
             try:
@@ -291,7 +294,7 @@ def validateCloudformation(cffile):
         else:
             returnvalue = False
             logAndInform("Validation could not load the contents of cloudformation. Coderef 1710")
-        logAndInform("Testing DICT: " + str(_tmp), msgtype="---------------->")
+        # logAndInform("Testing DICT: " + str(_tmp), msgtype="---------------->")
     logAndInform("Validation of Cloudformation is not fully implemented at this time!!! Current value is: " + str(returnvalue), msgtype="WARNING")
     return returnvalue
 
@@ -357,6 +360,53 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
             logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
             doDeleteCloudformation(str(stackid), account, name, region)
 
+def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, region: str):
+    # Find previous version of cloudfoundation stack (if exists)
+    searchstackarray = ['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + configfile + '\'])][StackId]', '--output', 'text']
+    logAndInform("Running: " + str(' '.join(searchstackarray)), msgtype="DEBUG")
+    searchstack = check_output(searchstackarray)
+    stacksWithSearchTag = str(searchstack.decode()).split("\n")
+    logAndInform("Found: " + str(stacksWithSearchTag), msgtype="DEBUG")
+    logAndInform("NOT IMPLEMENTED YET", msgtype="NOT IMPLEMENTED YET") 
+
+    # First, create the new stack
+    newstack = doAddCloudformationFromConfig(configfile, account, name, region)
+    responsarray = json.loads(str(newstack.decode()))
+    if "StackId" in responsarray.keys():
+        logAndInform ("Creating new Stack. StackID [" + responsarray["StackId"] + ']. This could take a few minutes depending on your requested deployment. Please wait...')
+        logAndInform ("Actually, this will take ZERO time, because this has not been implemented yet. Psyche!! Remember to remove the -999 loop_seconds before testing in real life!", "---> TODO <---")
+        loop_seconds = -999   # <---- REMOVE THIS WHEN "MAKE" CODE IS IN PLACE
+        # Loop for a while to see if the new stack comes up OK.
+        loop = 0
+        timer_counter = 0
+        while loop < loop_seconds:
+            # Check status of the running stack-create
+            create_status = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--stack-name', str(responsarray["StackId"]), '--query', 'Stacks[].StackStatus', '--output', 'text' ])
+            if "CREATE_IN_PROGRESS" in str(create_status):
+                timer_counter = timer_counter + 1
+                if timer_counter > timer_logcount:
+                    logAndInform ("Still waiting for CREATE_COMPLETE on StackId[" + str(responsarray["StackId"]) + "]. Please have patience...")
+                    timer_counter = 0
+                time.sleep(1)
+            elif "CREATE_COMPLETE" in str(create_status):
+                loop = loop_seconds
+            else:
+                # Message status is other than what we expected. Inform user!
+                logAndInform ("Create status mismatch. Expected CREATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
+                loop = loop_seconds
+ 
+    else:
+        logAndInform("Creating stack failed. Message: " + str(responsarray), msgtype="ERROR")
+
+    # Finally remove the old Stack(s)
+    for stackid in stacksWithSearchTag:
+        if not re.search('^\s*$', stackid):
+            logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
+            doDeleteCloudformation(str(stackid), account, name, region)
+        else:
+            logAndInform("No existing stack(s) found related to the config file [" + str(configfile) + "]", msgtype="DEBUG")
+
+
 def doDeleteCloudformation(element, account, name, region):
     logAndInform("Performing DELETE event: [" + element + "]")
     deletestack = False
@@ -385,9 +435,11 @@ def validateConfig(configfile):
     logAndInform("Validation of Config is not fully implemented at this time!!!", msgtype="WARNING")
     return True
 
-def doCreateCloudformationFromConfig(configfile, account, name, region):
-    doCreate = True
-    logAndInform("Performing doCreateCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
+def doAddCloudformationFromConfig(configfile: str, account: str, name: str, region: str) -> bytes:
+    doAdd = True
+    returnstring = '{"Message": "Creating Cloudformation from configfile ['+str(configfile)+'] was not event attempted. Coderef: 1066"}'
+    returnvalue = bytes(returnstring.encode())
+    logAndInform("Performing doAddCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
     # Check if the config is valid before proceeding
     if validateConfig(configfile):
         logAndInform(" CREATE config not implemented yet", msgtype="WARNING")
@@ -409,7 +461,7 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
                     myconfig = dict(myconfig, **metaarray)      # Add two dicts together (The new overwrites the old of two keys are the same!)
                 else:
                     logAndInform("File exists, but does not contain valid YAML code. Cannot parse content of ["+str(testmetafile)+"]", msgtype="DEBUG")
-                    doCreate = False
+                    doAdd = False
             mypath = mypath + i + '/'
         logAndInform("Contents of META : " + str(myconfig), msgtype="DEBUG")
         metaarray = ""
@@ -418,16 +470,25 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
                 metaarray = yaml.load(stream)
         except Exception as e:
             logAndInform("Yaml config file ["+str(configfile)+"] is broken or this is not a Yaml file! Coderef 1003. Message: " + str(e), msgtype="ERROR")
-            doCreate = False
+            doAdd = False
 
         # Add the configfile yaml content to the myconfig Dict
         if (isinstance(metaarray, dict)):
             myconfig = dict(myconfig, **metaarray)
         else:
             logAndInform("File exists, but does not contain valid YAML code. Cannot parse content of ["+str(configfile)+"]", msgtype="DEBUG")
-            doCreate = False
+            doAdd = False
 
-        if doCreate:
+        if doAdd:
+
+            # TODO: Some logic to merge meta.yaml TAGS with myconfig.
+            if "Tags" in myconfig.keys():
+                tags = myconfig["Tags"]
+            logAndInform("Found these META.yaml tags to include in the config: " + str(tags), msgtype="DEBUG")
+            logAndInform("Adding META tags is still WIP. Going to bed now!", msgtype="DEBUG")
+
+            
+
             logAndInform("Contents of MYCONFIG after merge : " + str(myconfig), msgtype="DEBUG")
 
             newtempfile = tempfile.mkstemp(prefix="orch_runid_" + str(runid) + "_")
@@ -440,16 +501,19 @@ def doCreateCloudformationFromConfig(configfile, account, name, region):
                 templatefile.close()
                 if deletetmpfileonfinish:
                     os.unlink(newtempfilename)
+                    logAndInform("Deleting TMP file ["+str(newtempfilename)+"]", msgtype="DEBUG")
             except Exception as e:
                 logAndInform("Could not create temp config file. Coderef 766. Message: " + str(e), msgtype="ERROR")
 
             # Here is where we call external YAML Generator. I.e. ansible, terraform etc
             if os.path.isfile(newtempfilename):
-                mycmd = ['run', 'this', 'command', 'on', 'tmpfile', newtempfilename]
+                mycmd = ['make', 'appdeploy', "file="+newtempfilename ] # '', 'on', 'tmpfile', newtempfilename]
                 try:
                     logAndInform("RUN: " + str(' '.join(mycmd)), msgtype="COMMAND")
+                    returnvalue = bytes('{"Message": "This will be some output from MAKE command when implemented"}'.encode())
                 except Exception as e:
                     logAndInform("Code ref 942. Message: " + str(e), msgtype="ERROR")
+    return returnvalue
     
 def doDeleteCloudformationFromConfig(configfile, account, name, region):
     logAndInform("Performing doDeleteCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
