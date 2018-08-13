@@ -1,0 +1,7 @@
+region: eu-west-2
+
+ec2:
+    name: myname
+    disks:
+        -   size: 15MB
+            type: ssd
