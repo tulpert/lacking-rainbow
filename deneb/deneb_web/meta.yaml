@@ -1,3 +1,8 @@
 vpc:            inside-deneb
 subnet:         sub-bastion-a
 region:         eu-west-10
+Tags:
+    - Key: fruit
+      Value: apple
+    - Key: metakey
+      Value: metavalue
