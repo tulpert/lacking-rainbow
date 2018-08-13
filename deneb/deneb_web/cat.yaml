@@ -3,5 +3,5 @@ region: eu-west-2
 ec2:
     name: myname
     disks:
-        -   size: 52MB
+        -   size: 53MB
             type: ssd
