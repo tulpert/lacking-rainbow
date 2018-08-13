@@ -2,7 +2,7 @@
 # Testfile to produce lots of git commits
 git rm mizar_cloudformation.yaml ; git commit -m"Removing Mizar"; git push origin dev
 sleep 1
-git rm deneb_web/ilius-cloudformation.yaml ; git commit -m"Removing Ilius"; git push origin dev
+git rm deneb_web/arcturus-cloudformation.yaml ; git commit -m"Removing Arcturus"; git push origin dev
 git rm deneb_web/vega-cloudformation.yaml ; git commit -m"Removing Vega"; git push origin dev
 sleep 1
 cp ../yaml.template trialofconfig.yaml; git add trialofconfig.yaml; git commit -m"Added Trial of config file"
@@ -11,7 +11,7 @@ sleep 1
 cp mizar_cloudformation.yaml_DELETE mizar_cloudformation.yaml; git add mizar_cloudformation.yaml; git commit -m"Adding Mizar"; git push origin dev
 cp vega_cloudformation.yaml_DELETE deneb_web/vega-cloudformation.yaml; git add deneb_web; git commit -m"Adding Vega"; git push origin dev; 
 sleep 1
-cp ilius_cloudformation.yaml_DELETE deneb_web/ilius-cloudformation.yaml; git add deneb_web; git commit -m"Adding Ilius"; git push origin dev
+cp arcturus_cloudformation.yaml_DELETE deneb_web/arcturus-cloudformation.yaml; git add deneb_web; git commit -m"Adding Arcturus"; git push origin dev
 sleep 1
 git rm trialofconfig.yaml; git commit -m"Removing Trialofconfig file"
 echo "" >> meta.yaml; git add meta.yaml; git commit -m"Editing deneb meta.yaml"; git push origin dev
