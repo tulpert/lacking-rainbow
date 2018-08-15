@@ -484,8 +484,8 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
             # TODO: Some logic to merge meta.yaml TAGS with myconfig.
             if "Tags" in myconfig.keys():
                 tags = myconfig["Tags"]
-            logAndInform("Found these META.yaml tags to include in the config: " + str(tags), msgtype="DEBUG")
-            logAndInform("Adding META tags is still WIP. Going to bed now!", msgtype="DEBUG")
+                logAndInform("Found these META.yaml tags to include in the config: " + str(tags), msgtype="DEBUG")
+                logAndInform("Adding META tags is still WIP. Going to bed now!", msgtype="DEBUG")
 
             
 
