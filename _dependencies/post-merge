@@ -461,7 +461,7 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                         tmparray = dict()
                         for _key in metaarray.keys():
                             if envyamlkey in metaarray.keys():
-                                if (str(account) in metaarray[envyamlkey].keys():
+                                if str(account) in metaarray[envyamlkey].keys():
                                     for _subkey in metaarray[envyamlkey][str(account)]:
                                         tmparray[_subkey] = metaarray[envyamlkey][str(account)][_subkey]
                             tmparray[_key] = metaarray[_key] 
