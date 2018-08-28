@@ -1,3 +1,10 @@
+env:
+    dev:
+        aws-linux2: ami-924aa8f5
+    prod:
+        aws-linux2: ami-b98667de
+
+
 vpc:            vpc-dmz
 subnet:         sub-bastion-a
 region:         eu-west-2
