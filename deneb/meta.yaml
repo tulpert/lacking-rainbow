@@ -1,9 +1,10 @@
-prod:
-    AServiceKey: AServiceProdValue
-test:
-    AServiceKey: AServiceTestValue
-dev:
-    AServiceKey: AServiceDevValue
+env:
+    prod:
+        AServiceKey: AServiceProdValue
+    test:
+        AServiceKey: AServiceTestValue
+    dev:
+        AServiceKey: AServiceDevValue
 
 vpc:            vpc-dmz
 subnet:         sub-bastion-c
