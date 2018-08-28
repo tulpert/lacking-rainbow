@@ -462,6 +462,8 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                                 logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
                             else:
                                 logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
+                        else:
+                            logAndInform("ENV ["+str(account)+"] does not exist in meta array", msgtype="DEBUG")
                 
                 except Exception as e:
                     logAndInform("Could not load meta file [" + str(metafile) + "]. Error ref 889. Message: " + str(e), msgtype="ERROR")
