@@ -1,15 +1,12 @@
-defaults:
-    vpc:            vpc-dmz
-    subnet:         sub-bastion-a
-    region:         eu-west-2
-    aws-linux2:     ami-924aa8f5
-    instancetype:   t2.micro
+env:
+    dev:
+        aws-linux2: ami-924aa8f5
+    prod:
+        aws-linux2: ami-b98667de
 
 
-# 
-# defaults:
-#     vpc:            vpc-0f25b19d43f1a3b42
-#     subnet:         subnet-03eb7e27cebefc3e4
-#     region:         eu-west-2
-#     aws-linux2:     ami-924aa8f5
-#     instancetype:   t2.micro
+vpc:            vpc-dmz
+subnet:         sub-bastion-a
+region:         eu-west-2
+# aws-linux2:     ami-924aa8f5
+instancetype:   t2.micro
