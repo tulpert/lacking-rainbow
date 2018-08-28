@@ -458,17 +458,14 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                         # Extract the environment specific variables
                         tmparray = dict()
                         for _key in metaarray.keys():
-                            if ('env' in metaarray.keys()):
-                                logAndInform("ENV Key exists. Do some magic!", msgtype="DEBUG")
-                                if (str(account) in metaarray['env'].keys()):
-                                    logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
-                                    for _subkey in metaarray['env'][str(account)]:
-                                        tmparray[_subkey] = metaarray['env'][str(account)][_subkey]
-                                else:
-                                    logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
-                            else:
-                                tmparray[_key] = metaarray[_key] 
-                                logAndInform("ENV ["+str(account)+"] does not exist in meta array", msgtype="DEBUG")
+                            if (str(account) in metaarray['env'].keys()):
+                                # logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
+                                for _subkey in metaarray['env'][str(account)]:
+                                    tmparray[_subkey] = metaarray['env'][str(account)][_subkey]
+                            # else:
+                            #     logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
+                            tmparray[_key] = metaarray[_key] 
+                            # logAndInform("ENV ["+str(account)+"] does not exist in meta array", msgtype="DEBUG")
                         metaarray = tmparray 
                 except Exception as e:
                     logAndInform("Could not load meta file [" + str(metafile) + "]. Error ref 889. Message: " + str(e), msgtype="ERROR")
