@@ -1,0 +1,8 @@
+name: this_is_a_name
+region: File_specific_region
+
+ec2:
+    name: this_is_an_ec2_name
+    tags:
+        - Name: this_is_name_tag
+        - Holy: moly
