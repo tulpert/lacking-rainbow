@@ -459,19 +459,12 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                         metaarray = yaml.load(stream)
                         # Extract the environment specific variables
                         tmparray = dict()
-                        if (envyamlkey in metaarray.keys()):
-                            for _key in metaarray.keys():
-                                if _key in environmentkeys:
-                                    if (str(account) in metaarray[envyamlkey].keys()):
-                                        # logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
-                                        for _subkey in metaarray[envyamlkey][str(account)]:
-                                            tmparray[_subkey] = metaarray[envyamlkey][str(account)][_subkey]
-                                    # else:
-                                    #     logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
-                                else:
-                                    tmparray[_key] = metaarray[_key] 
-                                else:
-                                # logAndInform("ENV ["+str(account)+"] does not exist in meta array", msgtype="DEBUG")
+                        for _key in metaarray.keys():
+                            if envyamlkey in metaarray.keys():
+                                if (str(account) in metaarray[envyamlkey].keys():
+                                    for _subkey in metaarray[envyamlkey][str(account)]:
+                                        tmparray[_subkey] = metaarray[envyamlkey][str(account)][_subkey]
+                            tmparray[_key] = metaarray[_key] 
                         metaarray = tmparray 
                 except Exception as e:
                     logAndInform("Could not load meta file [" + str(metafile) + "]. Error ref 889. Message: " + str(e), msgtype="ERROR")
