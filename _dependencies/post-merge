@@ -458,7 +458,7 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                         # Extract the environment specific variables
                         if ('env' in metaarray.keys()):
                             logAndInform("ENV Key exists. Do some magic!", msgtype="DEBUG")
-                            if ('dev' in metafile['env'].keys()):
+                            if ('dev' in metaarray['env'].keys()):
                                 logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
                             else:
                                 logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
