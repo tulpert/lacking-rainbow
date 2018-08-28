@@ -21,8 +21,9 @@ runpath                 = '/opt/orchestration'      # Path to where the codebase
 logfilepath             = '/tmp/logfile'            # Your friendly neighborhood log file
 logfilepath             = '/var/www/html/schnarf'
 runfile                 = runpath + '/.orchrun'     # This is used to keep track of when the last git pull took place
-cloudformationregex     = 'cloudformation';         # A regex. If file contains this string, then expect cloudformation content and deploy directly
+cloudformationregex     = 'cloudformation'          # A regex. If file contains this string, then expect cloudformation content and deploy directly
 goodinstancetypes       = ['t2.micro']
+environmentkeys         = ['prod', 'dev', 'test']
 
 # Functional variables. Edit at your own risk
 fullpath                = path.abspath(__file__)
@@ -33,6 +34,7 @@ commithistoryfile       = str(gitbasedirectory) + '/.git/.commithistory'
 metafiles               = ['meta.yaml', 'meta.yml', 'meta.json']
 creationkeystring       = 'StackCreationPath'
 region                  = 'eu-west-2'
+envyamlkey              = 'env'
 runid                   = str(random.randint(100000,999999))
 loop_seconds            = 1800
 timer_logcount          = 10                            # How many seconds between logging when waiting for new stackbuild
@@ -457,15 +459,19 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                         metaarray = yaml.load(stream)
                         # Extract the environment specific variables
                         tmparray = dict()
-                        for _key in metaarray.keys():
-                            if (str(account) in metaarray['env'].keys()):
-                                # logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
-                                for _subkey in metaarray['env'][str(account)]:
-                                    tmparray[_subkey] = metaarray['env'][str(account)][_subkey]
-                            # else:
-                            #     logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
-                            tmparray[_key] = metaarray[_key] 
-                            # logAndInform("ENV ["+str(account)+"] does not exist in meta array", msgtype="DEBUG")
+                        if (envyamlkey in metaarray.keys()):
+                            for _key in metaarray.keys():
+                                if _key in environmentkeys:
+                                    if (str(account) in metaarray[envyamlkey].keys()):
+                                        # logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
+                                        for _subkey in metaarray[envyamlkey][str(account)]:
+                                            tmparray[_subkey] = metaarray[envyamlkey][str(account)][_subkey]
+                                    # else:
+                                    #     logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
+                                else:
+                                    tmparray[_key] = metaarray[_key] 
+                                else:
+                                # logAndInform("ENV ["+str(account)+"] does not exist in meta array", msgtype="DEBUG")
                         metaarray = tmparray 
                 except Exception as e:
                     logAndInform("Could not load meta file [" + str(metafile) + "]. Error ref 889. Message: " + str(e), msgtype="ERROR")
