@@ -456,7 +456,7 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                     with open(metafile, 'r') as stream:
                         metaarray = yaml.load(stream)
                         # Extract the environment specific variables
-                        if ('env' in metafile.keys()):
+                        if ('env' in metaarray.keys()):
                             logAndInform("ENV Key exists. Do some magic!", msgtype="DEBUG")
                             if ('dev' in metafile['env'].keys()):
                                 logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
