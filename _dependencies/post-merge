@@ -464,7 +464,8 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                                 if str(account) in metaarray[envyamlkey].keys():
                                     for _subkey in metaarray[envyamlkey][str(account)]:
                                         tmparray[_subkey] = metaarray[envyamlkey][str(account)][_subkey]
-                            tmparray[_key] = metaarray[_key] 
+                            else:
+                                tmparray[_key] = metaarray[_key] 
                         metaarray = tmparray 
                 except Exception as e:
                     logAndInform("Could not load meta file [" + str(metafile) + "]. Error ref 889. Message: " + str(e), msgtype="ERROR")
