@@ -8,5 +8,5 @@ env:
 vpc:            vpc-dmz
 subnet:         sub-bastion-a
 region:         eu-west-2
-aws-linux2:     ami-924aa8f5
+# aws-linux2:     ami-924aa8f5
 instancetype:   t2.micro
