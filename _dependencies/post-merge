@@ -327,9 +327,9 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
     # Hint: use SQS for this!
     
     # 1
-    searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + cloudformationfile + '\'])][StackId]', '--output', 'text'])
+    searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account)+'_'+cloudformationfile + '\'])][StackId]', '--output', 'text'])
     if debug:
-        logAndInform("'aws', '--profile', " + account + ", 'cloudformation', 'describe-stacks', '--region', " + region + ", '--query', " + 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + cloudformationfile + '\'])][StackId]' + ", '--output', 'text' ", msgtype="DEBUG")
+        logAndInform("'aws', '--profile', " + account + ", 'cloudformation', 'describe-stacks', '--region', " + region + ", '--query', " + 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account)+'_'+cloudformationfile + '\'])][StackId]' + ", '--output', 'text' ", msgtype="DEBUG")
     stacksWithSearchTag = str(searchstack.decode()).split("\n")
     newstack = doAddCloudformation(cloudformationfile, account, name, region)
     # TODO: Insert logic here to detect that the new stack is active and working!
@@ -362,7 +362,7 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
 
 def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, region: str):
     # Find previous version of cloudfoundation stack (if exists)
-    searchstackarray = ['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + configfile + '\'])][StackId]', '--output', 'text']
+    searchstackarray = ['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account)+'_'+configfile + '\'])][StackId]', '--output', 'text']
     logAndInform("Running: " + str(' '.join(searchstackarray)), msgtype="DEBUG")
     searchstack = check_output(searchstackarray)
     stacksWithSearchTag = str(searchstack.decode()).split("\n")
