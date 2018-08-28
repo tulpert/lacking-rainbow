@@ -1,12 +1,14 @@
 env:
     dev:
-        aws-linux2: ami-924aa8f5
+        aws-linux2: ami-924aa8f5dev
     prod:
-        aws-linux2: ami-b98667de
+        aws-linux2: ami-b98667deprod
+    test:
+        aws-linux2: ami-6d263d09test
 
 
 vpc:            vpc-dmz
 subnet:         sub-bastion-a
 region:         eu-west-2
-# aws-linux2:     ami-924aa8f5
+# aws-linux2:     ami-924aa8f5comment
 instancetype:   t2.micro
