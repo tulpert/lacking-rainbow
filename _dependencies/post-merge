@@ -460,10 +460,10 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
                         for _key in metaarray.keys():
                             if ('env' in metaarray.keys()):
                                 logAndInform("ENV Key exists. Do some magic!", msgtype="DEBUG")
-                                if ('dev' in metaarray['env'].keys()):
+                                if (str(account) in metaarray['env'].keys()):
                                     logAndInform("This environment ["+str(account)+"] exists as key in the metaarray", msgtype="DEBUG")
-                                    for _subkey in metaarray['env']['dev']:
-                                        tmparray[_subkey] = metaarray['env']['dev'][_subkey]
+                                    for _subkey in metaarray['env'][str(account)]:
+                                        tmparray[_subkey] = metaarray['env'][str(account)][_subkey]
                                 else:
                                     logAndInform("ENVIRONMENT does not exist in meta array", msgtype="DEBUG")
                             else:
