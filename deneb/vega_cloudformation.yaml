@@ -6,7 +6,7 @@ Resources:
             KeyName: DenebMGMTClients
             Monitoring: false
             AvailabilityZone: eu-west-2a
-            ImageId: ami-924aa8f5
+            ImageId: ami-b98667de
             InstanceInitiatedShutdownBehavior: stop
             SecurityGroupIds:
                - sg-09e63b2fe04695925
