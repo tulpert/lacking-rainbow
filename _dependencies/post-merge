@@ -519,7 +519,7 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
 
             # Here is where we call external YAML Generator. I.e. ansible, terraform etc
             if os.path.isfile(newtempfilename):
-                mycmd = ['make', 'filedeploy', "file="+newtempfilename ] # '', 'on', 'tmpfile', newtempfilename]
+                mycmd = ['make', 'filedeploy', "env="+str(account), "file="+newtempfilename ] # '', 'on', 'tmpfile', newtempfilename]
                 try:
                     logAndInform("RUN: " + str(' '.join(mycmd)), msgtype="COMMAND")
                     returnvalue = bytes('{"Message": "This will be some output from MAKE command when implemented"}'.encode())
