@@ -319,8 +319,7 @@ def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, reg
     logAndInform("Running testcommand: " + ' '.join(searcharray), msgtype="DEBUG")
 
     searchstack = check_output(searcharray)
-    logAndInform("Testig: " + str(searchstring), msgtype="DEBUG")
-    # aws --profile dev cloudformation describe-stacks --region eu-west-2 --query "Stacks[?(Tags[?Key == StackCreationPath && Value == 'dev:*'])][StackId] --output text
+    logAndInform("Testig: " + str(searchstack), msgtype="DEBUG")
 
 def doReplaceCloudformation(cloudformationfile, account, name, region):
     logAndInform("Detected REPLACE Cloudformation event: [" + cloudformationfile + "]")
