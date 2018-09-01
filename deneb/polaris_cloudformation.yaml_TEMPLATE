@@ -10,6 +10,7 @@ Resources:
             BackupRetentionPeriod: 2
             DBInstanceClass: 'db.t2.micro'
 #            DBName: polaris
+            DBInstanceIdentifier: polarisdb
             Engine: 'sqlserver-ex'
             # EngineVersion: '14.00.3015.40.v1'
             EngineVersion: '13.00.4451.0.v1'
