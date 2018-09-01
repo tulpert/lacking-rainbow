@@ -570,6 +570,7 @@ def getDictFromFile(configfile: str) -> dict:
     # This function will return a dict from a yaml or json file
     if os.path.isfile(configfile):
         try:
+            logAndInform("Yay! Were using the new getDictFromFile function!", msgtype="DEBUG")
             with open(configfile, 'r') as stream:
                 if re.match('^\.y[a]{0,1}ml$', configfile):
                     _mydict = yaml.load(stream)
