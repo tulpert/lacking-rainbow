@@ -2,10 +2,10 @@ Resources:
     ilius:
         Type: AWS::EC2::Instance
         Properties: 
-            SecurityGroupIds:
-               - sg-09e63b2fe04695925
             SubnetId: subnet-03eb7e27cebefc3e4
             KeyName: DenebMGMTClients
+            SecurityGroupIds:
+               - sg-09e63b2fe04695925
             InstanceInitiatedShutdownBehavior: stop
             AvailabilityZone: eu-west-2g
             ImageId: ami-924aa8f5
