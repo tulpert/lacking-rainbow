@@ -1,5 +1,0 @@
-ec2:
-    userdata: 
-        - "yum update -y"
-        - "yum install telnet -y"
-        - "echo hello > /tmp/schnarf.txt"
