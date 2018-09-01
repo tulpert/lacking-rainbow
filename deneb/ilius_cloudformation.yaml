@@ -2,7 +2,7 @@ Resources:
     ilius:
         Type: AWS::EC2::Instance
         Properties: 
-            AvailabilityZone: eu-west-2a
+            AvailabilityZone: eu-west-2g
             ImageId: ami-924aa8f5
             InstanceInitiatedShutdownBehavior: stop
             InstanceType: t2.micro
