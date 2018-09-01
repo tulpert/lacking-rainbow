@@ -21,3 +21,5 @@ Resources:
                     Key: Service
                     Value: heavens
         Type: AWS::EC2::Instance
+
+
