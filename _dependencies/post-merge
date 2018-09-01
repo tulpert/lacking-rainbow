@@ -313,7 +313,7 @@ def validateCloudformation(cffile):
             returnvalue = False
             logAndInform("Validation could not load the contents of cloudformation. Coderef 1710")
         # logAndInform("Testing DICT: " + str(_tmp), msgtype="---------------->")
-    logAndInform("Validation of Cloudformation is not fully implemented at this time!!! Current value is: " + str(returnvalue), msgtype="WARNING")
+    logAndInform("Validation of Cloudformation WIP! However, your config was rejected. Current value is: " + str(returnvalue), msgtype="WARNING")
     return returnvalue
 
 def doAddCloudformation(cloudformationfile, account, name, region):  
