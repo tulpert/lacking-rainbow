@@ -550,10 +550,10 @@ def getDictFromFile(_file: str) -> dict:
         try:
             logAndInform("Yay! Were using the new getDictFromFile function on file ["+str(_file)+"]!", msgtype="DEBUG")
             with open(_file, 'r') as stream:
-                if re.match('\.y[a]{0,1}ml$', _file):
+                if re.match('^.*\.y[a]{0,1}ml$', _file):
                     logAndInform("Detected YAML fileextension", msgtype="DEBUG")
                     _mydict = yaml.load(stream)
-                elif re.match('\.json$', _file):
+                elif re.match('^.*\.json$', _file):
                     logAndInform("Detected JSON fileextension", msgtype="DEBUG")
                     _mydict = json.load(stream)
                 else:
