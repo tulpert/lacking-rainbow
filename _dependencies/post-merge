@@ -300,14 +300,13 @@ def validateCloudformation(cffile):
                         logAndInform("Validation could not locate Type declaration in Cloudformation. Coderef 1711")
                     if _instanceTypeString:
                         r = _tmp["Resources"][resource]["Properties"]
-                        for p in r.keys():
-                            if str(_instanceTypeString) in r.keys():
-                                if not str(r[str(_instanceTypeString)]).lower() in goodinstancetypes:
-                                    returnValue = False
-                                    logAndInform("Tried to provision unapproved instance type: " + r[str(_instanceTypeString)], msgtype="FAILURE")
-                            else:
+                        if str(_instanceTypeString) in r.keys():
+                            if not str(r[str(_instanceTypeString)]).lower() in goodinstancetypes:
                                 returnValue = False
-                                logAndInform("Missing expected Instance Type of [" + str(_instanceTypeString) + "] in CloudFormation file. Coderef 1713")
+                                logAndInform("Tried to provision unapproved instance type: " + r[str(_instanceTypeString)], msgtype="FAILURE")
+                        else:
+                            returnValue = False
+                            logAndInform("Missing expected Instance Type of [" + str(_instanceTypeString) + "] in CloudFormation file. Coderef 1713")
             else:
                 logAndInform("Missing `Resources` key in cloudformation", msgtype="FAILURE")
         else:
