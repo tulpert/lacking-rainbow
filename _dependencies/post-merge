@@ -390,6 +390,7 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
                 logAndInform("New stack creation status is [" + str(create_status) + "]. Expected CREATE_COMPLETE. Will not delete old stack.", msgtype="FAILURE") 
 
 def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, region: str):
+    doDeletePreviousStack = False
     # Find previous version of cloudfoundation stack (if exists)
     searchstackarray = ['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + configfile + '\'])][StackId]', '--output', 'text']
     logAndInform("Running: " + str(' '.join(searchstackarray)), msgtype="DEBUG")
@@ -418,20 +419,23 @@ def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, r
                     timer_counter = 0
                 time.sleep(20)
             elif "CREATE_COMPLETE" in str(create_status):
+                doDeletePreviousStack = True
                 loop = loop_seconds
             else:
                 # Message status is other than what we expected. Inform user!
                 logAndInform ("Create status mismatch. Expected CREATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
                 loop = loop_seconds
- 
     else:
         logAndInform("Creating stack failed. Message: " + str(responsarray), msgtype="ERROR")
 
     # Finally remove the old Stack(s)
     for stackid in stacksWithSearchTag:
         if not re.search('^\s*$', stackid):
-            logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
-            doDeleteCloudformation(str(stackid), account, name, region)
+            if doDeletePreviousStack:
+                logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
+                doDeleteCloudformation(str(stackid), account, name, region)
+            else:
+                logAndInform("New stack creation status is [" + str(create_status) + "]. Expected CREATE_COMPLETE. Will not delete old stack.", msgtype="FAILURE") 
         else:
             logAndInform("No existing stack(s) found related to the config file [" + str(configfile) + "]", msgtype="DEBUG")
 
