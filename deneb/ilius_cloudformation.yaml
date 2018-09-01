@@ -1,7 +1,6 @@
 Resources:
     ilius:
         Properties: 
-            SubnetId: subnet-03eb7e27cebefc3e4
             KeyName: DenebMGMTClients
             SecurityGroupIds:
                - sg-09e63b2fe04695925
@@ -10,6 +9,7 @@ Resources:
             ImageId: ami-924aa8f5
             InstanceType: t2.micro
             Monitoring: false
+            SubnetId: subnet-03eb7e27cebefc3e4
             Tags:
                 - 
                     Key: Bob
