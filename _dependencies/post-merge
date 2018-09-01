@@ -311,7 +311,7 @@ def doAddCloudformation(cloudformationfile, account, name, region):
                 logAndInform(" # " + _line, msgtype="DEBUG")
     return newdeploy
 
-def doUpdateCloudformation(cloudformationfile: str, account: str; name: str, region: str) -> dict:
+def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, region: str) -> dict:
     logAndInform("Detected Update Cloudformation event: [" + cloudformationfile + "]")
     # Return the latest created and valid cloudformation stack for this name
     # aws cloudformation describe-stacks --query "Stacks[].{CreationTime: CreationTime, Status: StackStatus, Name: StackName} | reverse(sort_by(@, &CreationTime))[:1]"
