@@ -333,9 +333,10 @@ def doReplaceCloudformation(cloudformationfile, account, name, region):
     doDeletePreviousStack = False
     
     # 1
-    searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]', '--output', 'text'])
+    searchstring = ['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]', '--output', 'text']
+    searchstack = check_output(searchstring)
     if debug:
-        logAndInform("'aws', '--profile', " + account + ", 'cloudformation', 'describe-stacks', '--region', " + region + ", '--query', " + 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]' + ", '--output', 'text' ", msgtype="DEBUG")
+        logAndInform(' '.join(searchstring), msgtype="DEBUG")
     stacksWithSearchTag = str(searchstack.decode()).split("\n")
     newstack = doAddCloudformation(cloudformationfile, account, name, region)
     # TODO: Insert logic here to detect that the new stack is active and working!
