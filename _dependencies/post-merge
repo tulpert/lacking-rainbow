@@ -245,7 +245,7 @@ def logAndInform(message, nologfile=False, email=False, teams=False, logfile=log
         if email:
             logAndInform("=========>  TODO: Implement push to email. Coderef 25", msgtype="INFO")
     
-def validateCloudformation(cffile):
+def validateCloudformation(cffile: str):
     # This function will read through the cloudformation file and verify
     # that all elements exists and are within compliance and naming standards
     # I.e.: Tags, EasyRisk IDs, Costcenter IDs, Naming convention etc...
@@ -544,17 +544,20 @@ def doDeleteCloudformationFromConfig(configfile, account, name, region):
     doDeleteCloudformation(configfile, account, name, region)
     
 
-def getDictFromFile(configfile: str) -> dict:
+def getDictFromFile(_file: str) -> dict:
     # This function will return a dict from a yaml or json file
-    if os.path.isfile(configfile):
+    if os.path.isfile(_file):
         try:
-            logAndInform("Yay! Were using the new getDictFromFile function!", msgtype="DEBUG")
-            with open(configfile, 'r') as stream:
-                if re.match('^\.y[a]{0,1}ml$', configfile):
+            logAndInform("Yay! Were using the new getDictFromFile function on file ["+str(_file)+"]!", msgtype="DEBUG")
+            with open(_file, 'r') as stream:
+                if re.match('^\.y[a]{0,1}ml$', _file):
+                    logAndInform("Detected YAML fileextension", msgtype="DEBUG")
                     _mydict = yaml.load(stream)
-                elif re.match('^.*\.json$', configfile):
+                elif re.match('^.*\.json$', _file):
+                    logAndInform("Detected JSON fileextension", msgtype="DEBUG")
                     _mydict = json.load(stream)
                 else:
+                    logAndInform("I do not recognise the fileextension from file ["+str(_file)+"]", msgtype="DEBUG")
                     return False
         except Exception as e:
             logAndInform("Could not transform file to dict. Error: " + str(e), msgtype="FAILURE")
