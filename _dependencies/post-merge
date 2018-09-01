@@ -322,11 +322,15 @@ def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, reg
     logAndInform("Testig: " + str(searchstack), msgtype="DEBUG")
 
     logAndInform("Updating existing running stack [" + str(searchstack) + "]", msgtype="DEBUG")
-    runarray = ['aws', '--profile', account, 'cloudformation', 'update-stack', '--stack-name', str(name), '--tags', 'Key="'+str(creationkeystring)+'",Value="'+ str(account) + ':' + str(cloudformationfile) +'"',  '--region', str(region), '--template-body', 'file://'+str(cloudformationfile)]
-    logAndInform("Will run: " + ' '.join(runarray), msgtype="DEBUG")
-    y = check_output(runarray)
-    logAndInform("output of Update: " + str(y), msgtype="DEBUG")
-    return y
+    if searchstack:
+        runarray = ['aws', '--profile', account, 'cloudformation', 'update-stack', '--stack-name', str(searchstack), '--tags', 'Key="'+str(creationkeystring)+'",Value="'+ str(account) + ':' + str(cloudformationfile) +'"',  '--region', str(region), '--template-body', 'file://'+str(cloudformationfile)]
+        logAndInform("Will run: " + ' '.join(runarray), msgtype="DEBUG")
+        y = check_output(runarray)
+        logAndInform("output of Update: " + str(y), msgtype="DEBUG")
+        return y
+    else:
+        return False
+        logAndInform("Could not find a suitable stack. Coderef 1788", msgtype="DEBUG")
 
 def doReplaceCloudformation(cloudformationfile, account, name, region):
     logAndInform("Detected REPLACE Cloudformation event: [" + cloudformationfile + "]")
