@@ -8,7 +8,7 @@ Resources:
             AutoMinorVersionUpgrade: True
             AvailabilityZone: eu-west-2a
             BackupRetentionPeriod: 2
-            DBInstanceType: 'db-t2-micro'
+            DBInstanceType: 'db.t2.micro'
             DBName: polaris
             Engine: 'sqlserver-ex'
             # EngineVersion: '14.00.3015.40.v1'
