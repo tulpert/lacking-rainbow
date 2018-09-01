@@ -321,6 +321,12 @@ def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, reg
     searchstack = check_output(searcharray)
     logAndInform("Testig: " + str(searchstack), msgtype="DEBUG")
 
+    logAndInform("Updating existing running stack [" + str(searchstack) + "]", msgtype="DEBUG")
+    runarray = ['aws', '--profile', account, 'cloudformation', 'update-stack', '--stack-name', str(name), '--tags', 'Key="'+str(creationkeystring)+'",Value="'+ str(account) + ':' + str(cloudformationfile) +'"',  '--region', str(region), '--template-body', 'file://'+str(cloudformationfile)]
+    y = check_output(runarray)
+    logAndInform("output of Update: " + str(y), msgtype="DEBUG")
+    return y
+
 def doReplaceCloudformation(cloudformationfile, account, name, region):
     logAndInform("Detected REPLACE Cloudformation event: [" + cloudformationfile + "]")
     # Modification has occured. Do the following:
