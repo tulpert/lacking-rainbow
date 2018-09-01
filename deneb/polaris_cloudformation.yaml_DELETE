@@ -1,5 +1,5 @@
 Resources:
-    polaris-sql:
+    polarissql:
         Type: AWS::RDS::DBInstance
         DeletionPolicy: "Snapshot"
         Properties:
