@@ -22,7 +22,7 @@ logfilepath             = '/tmp/logfile'            # Your friendly neighborhood
 logfilepath             = '/var/www/html/schnarf'
 runfile                 = runpath + '/.orchrun'     # This is used to keep track of when the last git pull took place
 cloudformationregex     = 'cloudformation'          # A regex. If file contains this string, then expect cloudformation content and deploy directly
-goodinstancetypes       = ['t2.micro']
+goodinstancetypes       = ['t2.micro', 'db.t2.micro']
 environmentkeys         = ['prod', 'dev', 'test']
 
 # Functional variables. Edit at your own risk
@@ -286,11 +286,24 @@ def validateCloudformation(cffile):
         if isinstance(_tmp, dict):
             if "Resources" in _tmp.keys():
                 for resource in _tmp["Resources"].keys():
-                    r = _tmp["Resources"][resource]["Properties"]
-                    for p in r.keys():
-                        if not str(r["InstanceType"]).lower() in goodinstancetypes:
-                            returnvalue = False
-                            logAndInform("Tried to provision unapproved instance type: " + r["InstanceType"], msgtype="FAILURE")
+                    if 'Type' in _tmp["Resources"][resource].Keys()
+                        if _tmp['Resources'][resource]['Type'] == 'AWS::RDS::Instance':
+                            _instanceTypeString = 'InstanceType'
+                        elif _tmp['Resources'][resource]['Type'] == 'AWS::RDS::DBInstance':
+                            _instanceTypeString = 'DBInstanceType'
+                        else:
+                            returnValue = True
+                            _instanceTypeString = False
+                            logAndInform("Validation function has no logic to validate Resources of Type [" + str(_tmp['Resources'][resource]['Type']) + "]. Will approve, but it might fail... Coderef 1712") 
+                    else:
+                        returnValue = False
+                        logAndInform("Validation could not locate Type declaration in Cloudformation. Coderef 1711")
+                    if _instanceTypeString:
+                        r = _tmp["Resources"][resource]["Properties"]
+                        for p in r.keys():
+                            if not str(r[str(_instanceTypeString)]).lower() in goodinstancetypes:
+                                returnvalue = False
+                                logAndInform("Tried to provision unapproved instance type: " + r[str(_instanceTypeString)], msgtype="FAILURE")
             else:
                 logAndInform("Missing `Resources` key in cloudformation", msgtype="FAILURE")
         else:
