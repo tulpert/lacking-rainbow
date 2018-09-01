@@ -1,6 +1,5 @@
 Resources:
     ilius:
-        Type: AWS::EC2::Instance
         Properties: 
             SubnetId: subnet-03eb7e27cebefc3e4
             KeyName: DenebMGMTClients
@@ -21,3 +20,4 @@ Resources:
                 -
                     Key: Service
                     Value: heavens
+        Type: AWS::EC2::Instance
