@@ -286,7 +286,7 @@ def validateCloudformation(cffile):
         if isinstance(_tmp, dict):
             if "Resources" in _tmp.keys():
                 for resource in _tmp["Resources"].keys():
-                    if 'Type' in _tmp["Resources"][resource].Keys():
+                    if 'Type' in _tmp["Resources"][resource].keys():
                         if _tmp['Resources'][resource]['Type'] == 'AWS::RDS::Instance':
                             _instanceTypeString = 'InstanceType'
                         elif _tmp['Resources'][resource]['Type'] == 'AWS::RDS::DBInstance':
