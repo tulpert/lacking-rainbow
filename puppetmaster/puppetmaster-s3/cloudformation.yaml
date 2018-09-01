@@ -1,3 +1,0 @@
-Resources:
-  DenebPupolication:
-    Type: AWS::S3::Bucket
