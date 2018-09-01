@@ -258,6 +258,7 @@ def validateCloudformation(cffile):
     # Is valid JSON - Written code. Must be tested!
     returnvalue = True
     _tmp = getDictFromFile(cffile)
+    logAndInform("Contents of _tmp. Coderef 188888: " + str(_tmp), msgtype="DEBUG")
     if isinstance(_tmp, dict):
         if "Resources" in _tmp.keys():
             for resource in _tmp["Resources"].keys():
