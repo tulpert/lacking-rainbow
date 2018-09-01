@@ -323,6 +323,7 @@ def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, reg
 
     logAndInform("Updating existing running stack [" + str(searchstack) + "]", msgtype="DEBUG")
     runarray = ['aws', '--profile', account, 'cloudformation', 'update-stack', '--stack-name', str(name), '--tags', 'Key="'+str(creationkeystring)+'",Value="'+ str(account) + ':' + str(cloudformationfile) +'"',  '--region', str(region), '--template-body', 'file://'+str(cloudformationfile)]
+    logAndInform("Will run: " + ' '.join(runarray), msgtype="DEBUG")
     y = check_output(runarray)
     logAndInform("output of Update: " + str(y), msgtype="DEBUG")
     return y
