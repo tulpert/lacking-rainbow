@@ -286,7 +286,7 @@ def validateCloudformation(cffile):
         if isinstance(_tmp, dict):
             if "Resources" in _tmp.keys():
                 for resource in _tmp["Resources"].keys():
-                    if not re.match('^[A-Za-z0-9]$', str(resource)):
+                    if not re.match('^[A-Za-z0-9]*$', str(resource)):
                         logAndInform("Resource name must be alphanumeric in Cloudformation. Resource [" + str(resource) + "] is rejected", msgtype="FAILURE")
                         return False
                     if 'Type' in _tmp["Resources"][resource].keys():
