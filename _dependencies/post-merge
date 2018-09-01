@@ -292,20 +292,20 @@ def validateCloudformation(cffile):
                         elif _tmp['Resources'][resource]['Type'] == 'AWS::RDS::DBInstance':
                             _instanceTypeString = 'DBInstanceType'
                         else:
-                            returnValue = True
+                            returnvalue = True
                             _instanceTypeString = False
                             logAndInform("Validation function has no logic to validate Resources of Type [" + str(_tmp['Resources'][resource]['Type']) + "]. Will approve, but it might fail... Coderef 1712") 
                     else:
-                        returnValue = False
+                        returnvalue = False
                         logAndInform("Validation could not locate Type declaration in Cloudformation. Coderef 1711")
                     if _instanceTypeString:
                         r = _tmp["Resources"][resource]["Properties"]
                         if str(_instanceTypeString) in r.keys():
                             if not str(r[str(_instanceTypeString)]).lower() in goodinstancetypes:
-                                returnValue = False
+                                returnvalue = False
                                 logAndInform("Tried to provision unapproved instance type: " + r[str(_instanceTypeString)], msgtype="FAILURE")
                         else:
-                            returnValue = False
+                            returnvalue = False
                             logAndInform("Missing expected Instance Type of [" + str(_instanceTypeString) + "] in CloudFormation file. Coderef 1713")
             else:
                 logAndInform("Missing `Resources` key in cloudformation", msgtype="FAILURE")
