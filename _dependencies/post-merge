@@ -24,6 +24,8 @@ runfile                 = runpath + '/.orchrun'     # This is used to keep track
 cloudformationregex     = 'cloudformation'          # A regex. If file contains this string, then expect cloudformation content and deploy directly
 goodinstancetypes       = ['t2.micro', 'db.t2.micro']
 environmentkeys         = ['prod', 'dev', 'test']
+# default_sleep           = 5                         # Default #seconds between checking if Cloudformation stack creation is completed
+# rds_sleep               = 60                        # #seconds between checking if Cloudformation stack RDS creation is completed
 
 # Functional variables. Edit at your own risk
 fullpath                = path.abspath(__file__)
@@ -368,7 +370,7 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
             if timer_counter > timer_logcount:
                 logAndInform ("Still waiting for CREATE_COMPLETE on StackId[" + str(responsarray["StackId"]) + "]. Please have patience...")
                 timer_counter = 0
-            time.sleep(1)
+            time.sleep(20)
         elif "CREATE_COMPLETE" in str(create_status):
             loop = loop_seconds
         else:
@@ -408,7 +410,7 @@ def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, r
                 if timer_counter > timer_logcount:
                     logAndInform ("Still waiting for CREATE_COMPLETE on StackId[" + str(responsarray["StackId"]) + "]. Please have patience...")
                     timer_counter = 0
-                time.sleep(1)
+                time.sleep(20)
             elif "CREATE_COMPLETE" in str(create_status):
                 loop = loop_seconds
             else:
