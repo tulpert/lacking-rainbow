@@ -348,6 +348,8 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
     # 3. Verify that new stack is OK
     # 4. Delete old cloudformation stack
     # Hint: use SQS for this!
+
+    doDeletePreviousStack = False
     
     # 1
     searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]', '--output', 'text'])
@@ -373,6 +375,7 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
             time.sleep(20)
         elif "CREATE_COMPLETE" in str(create_status):
             loop = loop_seconds
+            doDeletePreviousStack = True
         else:
             # Message status is other than what we expected. Inform user!
             logAndInform ("Create status mismatch. Expected CREATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
@@ -380,8 +383,11 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
  
     for stackid in stacksWithSearchTag:
         if not re.search('^\s*$', stackid):
-            logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
-            doDeleteCloudformation(str(stackid), account, name, region)
+            if doDeletePreviousStack:
+                logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
+                doDeleteCloudformation(str(stackid), account, name, region)
+            else:
+                logAndInform("New stack creation status is [" + str(create_status) + "]. Expected CREATE_COMPLETE. Will not delete old stack.", msgtype="FAILURE") 
 
 def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, region: str):
     # Find previous version of cloudfoundation stack (if exists)
