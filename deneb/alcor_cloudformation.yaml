@@ -9,7 +9,8 @@ Resources:
             AvailabilityZone: eu-west-2a
             BackupRetentionPeriod: 2
             DBInstanceClass: 'db.t2.micro'
-            DBName: alcordb
+            # DBName: alcordb
+            DBInstanceIdentifiery: alcordbidentifier
 # #            DBName: polaris
 #             Engine: 'sqlserver-ex'
 #             # EngineVersion: '14.00.3015.40.v1'
@@ -22,4 +23,4 @@ Resources:
             Tags:
                 -
                     Key: 'Name'
-                    Value: 'polaris-sql'
+                    Value: 'alcor-mysql'
