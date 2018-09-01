@@ -16,8 +16,8 @@ Resources:
 #             # EngineVersion: '14.00.3015.40.v1'
 #             EngineVersion: '13.00.4451.0.v1'
             Engine: 'mysql'
-            EngineVersion: '5.7.22'
-            # EngineVersion: '5.7.19'
+            # EngineVersion: '5.7.22'
+            EngineVersion: '5.7.19'
             MasterUsername: 'strings'
             MasterUserPassword: 'pantspants'
             Tags:
