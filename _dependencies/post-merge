@@ -317,8 +317,15 @@ def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, reg
     # Return the latest created and valid cloudformation stack for this name
     # aws cloudformation describe-stacks --query "Stacks[].{CreationTime: CreationTime, Status: StackStatus, Name: StackName} | reverse(sort_by(@, &CreationTime))[:1]"
     # aws cloudformation describe-stacks --query "Stacks[?StackStatus == 'CREATE_COMPLETE' || StackStatus == 'CREATE_FAILED' ].{CreationTime: CreationTime, Status: StackStatus, Name: StackName} | reverse(sort_by(@, &CreationTime))[:1]"
+    # aws cloudformation describe-stacks --region eu-west-2 --query "Stacks[?(Tags[?(Key == 'StackCreationPath' && Value == 'dev:deneb/ilius_cloudformation.yaml') || StackStatus == 'CREATE_COMPLETE'])].{Status: StackStatus,CreationTime: CreationTime, Name: StackName, ID: StackId} | reverse(sort_by (@, &CreationTime))[:1]"
+    # searcharray = ['aws', '--profile', str(account), 'cloudformation', 'describe-stacks', '--region', str(region), '--query', '""']
+    # aws cloudformation describe-stacks --region eu-west-2 --query "Stacks[?(Tags[?(Key == 'StackCreationPath' && Value == 'dev:deneb/ilius_cloudformation.yaml') || StackStatus == 'CREATE_COMPLETE'])] | sort_by (@, &CreationTime)[:1].[StackId]" --output text
+    # searcharray = ['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\']) || StackStatus == \'CREATE_COMPLETE\' ]', '--output', 'text']
+    searcharray = ['aws', '--profile', str(account), 'cloudformation',  'describe-stacks', '--region', str(region), '--query', 'Stacks[?(Tags[?(Key == \'StackCreationPath\' && Value == \''+str(account) + ':' + str(cloudformationfile) + '\') || StackStatus == \'CREATE_COMPLETE\'])] | sort_by (@, &CreationTime)[:1].[StackId]', '--output', 'text']
+    logAndInform("Running testcommand: " + ' '.join(searcharray), msgtype="DEBUG")
 
-    searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]', '--output', 'text'])
+    searchstack = check_output(searcharray)
+    logAndInform("Testig: " + str(searchstring), msgtype="DEBUG")
     # aws --profile dev cloudformation describe-stacks --region eu-west-2 --query "Stacks[?(Tags[?Key == StackCreationPath && Value == 'dev:*'])][StackId] --output text
 
 def doReplaceCloudformation(cloudformationfile, account, name, region):
