@@ -2,11 +2,11 @@ Resources:
     ilius:
         Type: AWS::EC2::Instance
         Properties: 
-            InstanceType: t2.micro
             KeyName: DenebMGMTClients
             AvailabilityZone: eu-west-2g
             ImageId: ami-924aa8f5
             InstanceInitiatedShutdownBehavior: stop
+            InstanceType: t2.micro
             Monitoring: false
             SecurityGroupIds:
                - sg-09e63b2fe04695925
