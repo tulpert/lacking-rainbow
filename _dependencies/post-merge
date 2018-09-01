@@ -175,8 +175,6 @@ def main():
                         elif operator == 'D':
                             doDeleteCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
                         elif operator == 'M':
-                            # logAndInform("Detected MODIFU event: [" + file_changed + "]")
-                            # logAndInform("  -> MODIFU OF NON-CLOUDFORMATION FILE IS NOT IMPLEMENTED YET 54 <- ", msgtype="WARNING")
                             doModifyCloudformationFromConfig(file_changed, gitbranchname, stackname, region)
                         elif operator == 'R':
                             splitthis = file_changed.split("\t") 
@@ -191,7 +189,6 @@ def main():
                             logAndInform("  region    : " + region, msgtype="WARNING")
                             logAndInform("  piss      : " + str(splitthis), msgtype="WARNING")
                             tmp = doAddCloudformationFromConfig(to_file, gitbranchname, stackname, region)
-                            # TODO -> Ensure the new badboy is created before deleting the old one
                             doDeleteCloudformationFromConfig(from_file, gitbranchname, stackname, region)
                         else:
                             logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
@@ -213,7 +210,9 @@ def main():
                             # Check if new config files not exist and perform ADD. If not, see if we need to update any tags. 
                             # If not, then ignore.")
                         elif operator == 'M':
-                            doModifyCloudformation(file_changed, gitbranchname, stackname, region)
+                            # Decide to either update the old stack or replace it
+                            # doUpdateCloudformation(file_changed, gitbranchname, stackname, region)
+                            doReplaceCloudformation(file_changed, gitbranchname, stackname, region)
                         else:
                             logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
                     else:
@@ -259,67 +258,38 @@ def validateCloudformation(cffile):
     # Is valid JSON - Written code. Must be tested!
     returnvalue = True
     _tmp = getDictFromFile(cffile)
-    if _tmp:
-    # if path.isfile(cffile):    # Need to check if file exists. If DELETE or MODIFY command, then file may be deleted
-        # logAndInform("Validating file: " + str(cffile), msgtype=" I S    F I L E ")
-    #     if re.search('\.y[a]{0,1}ml$', cffile):
-    #         logAndInform("Detected YAML file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
-    #         try:
-    #             with open(cffile, "r") as stream:
-    #                 _tmp = yaml.load(stream)
-    #                 if not isinstance(_tmp, dict):      # Loading Yaml file into dict failed. File is not YAML!
-    #                     logAndInform("Validate failed. File is not valid YAML: " + str(cffile), msgtype="FAILURE")
-    #                     returnvalue = False
-    #         except Exception as e:
-    #             logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e), msgtype="ERROR")
-    #             returnvalue = False
-    #     elif re.match('\.json$', cffile):
-    #         logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
-    #         try:
-    #             with open(cffile, "r") as stream:
-    #                 _tmp = json.load(cffile)
-    #                 if not isinstance(_tmp, dict):      # Loading Json file into dict failed. File is not JSON!
-    #                     logAndInform("Validate failed. File is not valid JSON: " + str(cffile), msgtype="FAILURE")
-    #                     returnvalue = False
-    #         except Exception as e:
-    #             logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e))
-    #             returnvalue = False
-    #         logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
-    #     else:
-    #         logAndInform("Cloudformation file is neither YAML or JSON. Cannot continue.", msgtype="DEBUG")
-        if isinstance(_tmp, dict):
-            if "Resources" in _tmp.keys():
-                for resource in _tmp["Resources"].keys():
-                    if not re.match('^[A-Za-z0-9]*$', str(resource)):
-                        logAndInform("Resource name must be alphanumeric in Cloudformation. Resource [" + str(resource) + "] is rejected", msgtype="FAILURE")
-                        return False
-                    if 'Type' in _tmp["Resources"][resource].keys():
-                        if _tmp['Resources'][resource]['Type'] == 'AWS::RDS::Instance':
-                            _instanceTypeString = 'InstanceType'
-                        elif _tmp['Resources'][resource]['Type'] == 'AWS::RDS::DBInstance':
-                            _instanceTypeString = 'DBInstanceClass'
-                        else:
-                            returnvalue = True
-                            _instanceTypeString = False
-                            logAndInform("Validation function has no logic to validate Resources of Type [" + str(_tmp['Resources'][resource]['Type']) + "]. Will approve, but it might fail... Coderef 1712") 
+    if isinstance(_tmp, dict):
+        if "Resources" in _tmp.keys():
+            for resource in _tmp["Resources"].keys():
+                if not re.match('^[A-Za-z0-9]*$', str(resource)):
+                    logAndInform("Resource name must be alphanumeric in Cloudformation. Resource [" + str(resource) + "] is rejected", msgtype="FAILURE")
+                    return False
+                if 'Type' in _tmp["Resources"][resource].keys():
+                    if _tmp['Resources'][resource]['Type'] == 'AWS::RDS::Instance':
+                        _instanceTypeString = 'InstanceType'
+                    elif _tmp['Resources'][resource]['Type'] == 'AWS::RDS::DBInstance':
+                        _instanceTypeString = 'DBInstanceClass'
+                    else:
+                        returnvalue = True
+                        _instanceTypeString = False
+                        logAndInform("Validation function has no logic to validate Resources of Type [" + str(_tmp['Resources'][resource]['Type']) + "]. Will approve, but it might fail... Coderef 1712") 
+                else:
+                    returnvalue = False
+                    logAndInform("Validation could not locate Type declaration in Cloudformation. Coderef 1711")
+                if _instanceTypeString:
+                    r = _tmp["Resources"][resource]["Properties"]
+                    if str(_instanceTypeString) in r.keys():
+                        if not str(r[str(_instanceTypeString)]).lower() in goodinstancetypes:
+                            returnvalue = False
+                            logAndInform("Tried to provision unapproved instance type: " + r[str(_instanceTypeString)], msgtype="FAILURE")
                     else:
                         returnvalue = False
-                        logAndInform("Validation could not locate Type declaration in Cloudformation. Coderef 1711")
-                    if _instanceTypeString:
-                        r = _tmp["Resources"][resource]["Properties"]
-                        if str(_instanceTypeString) in r.keys():
-                            if not str(r[str(_instanceTypeString)]).lower() in goodinstancetypes:
-                                returnvalue = False
-                                logAndInform("Tried to provision unapproved instance type: " + r[str(_instanceTypeString)], msgtype="FAILURE")
-                        else:
-                            returnvalue = False
-                            logAndInform("Missing expected Instance Type of [" + str(_instanceTypeString) + "] in CloudFormation file. Coderef 1713")
-            else:
-                logAndInform("Missing `Resources` key in cloudformation", msgtype="FAILURE")
+                        logAndInform("Missing expected Instance Type of [" + str(_instanceTypeString) + "] in CloudFormation file. Coderef 1713")
         else:
-            returnvalue = False
-            logAndInform("Validation could not load the contents of cloudformation. Coderef 1710")
-        # logAndInform("Testing DICT: " + str(_tmp), msgtype="---------------->")
+            logAndInform("Missing `Resources` key in cloudformation", msgtype="FAILURE")
+    else:
+        returnvalue = False
+        logAndInform("Validation could not load the contents of cloudformation. Coderef 1710")
     logAndInform("Validation of Cloudformation is still WIP and in Beta! Check log if status is False or Rejected. Current value is: " + str(returnvalue), msgtype="WARNING")
     return returnvalue
 
@@ -341,9 +311,17 @@ def doAddCloudformation(cloudformationfile, account, name, region):
                 logAndInform(" # " + _line, msgtype="DEBUG")
     return newdeploy
 
-def doModifyCloudformation(cloudformationfile, account, name, region):
-    logAndInform("Detected MODIFY event: [" + cloudformationfile + "]")
-    logAndInform("  -> MODIFY is WIP and in BETA <- ", msgtype="WARNING")
+def doUpdateCloudformation(cloudformationfile: str, account: str; name: str, region: str) -> dict:
+    logAndInform("Detected Update Cloudformation event: [" + cloudformationfile + "]")
+    # Return the latest created and valid cloudformation stack for this name
+    # aws cloudformation describe-stacks --query "Stacks[].{CreationTime: CreationTime, Status: StackStatus, Name: StackName} | reverse(sort_by(@, &CreationTime))[:1]"
+    # aws cloudformation describe-stacks --query "Stacks[?StackStatus == 'CREATE_COMPLETE' || StackStatus == 'CREATE_FAILED' ].{CreationTime: CreationTime, Status: StackStatus, Name: StackName} | reverse(sort_by(@, &CreationTime))[:1]"
+
+    searchstack = check_output(['aws', '--profile', account, 'cloudformation', 'describe-stacks', '--region', region, '--query', 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]', '--output', 'text'])
+    # aws --profile dev cloudformation describe-stacks --region eu-west-2 --query "Stacks[?(Tags[?Key == StackCreationPath && Value == 'dev:*'])][StackId] --output text
+
+def doReplaceCloudformation(cloudformationfile, account, name, region):
+    logAndInform("Detected REPLACE Cloudformation event: [" + cloudformationfile + "]")
     # Modification has occured. Do the following:
     # 1. Find the previous version of the cloudfoundation stack (if exists)
     # 2. Create new cloudformation stack
@@ -358,11 +336,11 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
     if debug:
         logAndInform("'aws', '--profile', " + account + ", 'cloudformation', 'describe-stacks', '--region', " + region + ", '--query', " + 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]' + ", '--output', 'text' ", msgtype="DEBUG")
     stacksWithSearchTag = str(searchstack.decode()).split("\n")
-    logAndInform ("Creating new Stack. StackID [" + responsarray["StackId"] + ']. This could take a few minutes depending on your requested deployment. Please wait...')
     newstack = doAddCloudformation(cloudformationfile, account, name, region)
     # TODO: Insert logic here to detect that the new stack is active and working!
-    
     responsarray = json.loads(str(newstack.decode()))
+    logAndInform ("Creating new Stack. StackID [" + responsarray["StackId"] + ']. This could take a few minutes depending on your requested deployment. Please wait...')
+    
     
     # Loop for a while to see if the new stack comes up OK.
     loop = 0
@@ -481,11 +459,9 @@ def doAddCloudformationFromConfig(configfile: str, account: str, name: str, regi
         logAndInform(" CREATE config not implemented yet", msgtype="WARNING")
         
         myconfig = dict()
-        logAndInform("    ----> Configfile: "  + configfile, msgtype="DEBUG")
         mypath = ''
         for i in configfile.split('/'):
             metafile = str(mypath + 'meta.yaml')
-            logAndInform("    ----> SUBConfigfile: ["  + mypath + 'meta.yaml' + ']', msgtype="DEBUG")
             if os.path.isfile(metafile):
                 metaarray = dict()
                 try:
