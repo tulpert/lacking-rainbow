@@ -258,33 +258,35 @@ def validateCloudformation(cffile):
     # Is valid YAML - OK
     # Is valid JSON - Written code. Must be tested!
     returnvalue = True
-    if path.isfile(cffile):    # Need to check if file exists. If DELETE or MODIFY command, then file may be deleted
+    _tmp = getDictFromFile(cffile)
+    if _tmp:
+    # if path.isfile(cffile):    # Need to check if file exists. If DELETE or MODIFY command, then file may be deleted
         # logAndInform("Validating file: " + str(cffile), msgtype=" I S    F I L E ")
-        if re.search('\.y[a]{0,1}ml$', cffile):
-            logAndInform("Detected YAML file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
-            try:
-                with open(cffile, "r") as stream:
-                    _tmp = yaml.load(stream)
-                    if not isinstance(_tmp, dict):      # Loading Yaml file into dict failed. File is not YAML!
-                        logAndInform("Validate failed. File is not valid YAML: " + str(cffile), msgtype="FAILURE")
-                        returnvalue = False
-            except Exception as e:
-                logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e), msgtype="ERROR")
-                returnvalue = False
-        elif re.match('\.json$', cffile):
-            logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
-            try:
-                with open(cffile, "r") as stream:
-                    _tmp = json.load(cffile)
-                    if not isinstance(_tmp, dict):      # Loading Json file into dict failed. File is not JSON!
-                        logAndInform("Validate failed. File is not valid JSON: " + str(cffile), msgtype="FAILURE")
-                        returnvalue = False
-            except Exception as e:
-                logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e))
-                returnvalue = False
-            logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
-        else:
-            logAndInform("Cloudformation file is neither YAML or JSON. Cannot continue.", msgtype="DEBUG")
+    #     if re.search('\.y[a]{0,1}ml$', cffile):
+    #         logAndInform("Detected YAML file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
+    #         try:
+    #             with open(cffile, "r") as stream:
+    #                 _tmp = yaml.load(stream)
+    #                 if not isinstance(_tmp, dict):      # Loading Yaml file into dict failed. File is not YAML!
+    #                     logAndInform("Validate failed. File is not valid YAML: " + str(cffile), msgtype="FAILURE")
+    #                     returnvalue = False
+    #         except Exception as e:
+    #             logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e), msgtype="ERROR")
+    #             returnvalue = False
+    #     elif re.match('\.json$', cffile):
+    #         logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
+    #         try:
+    #             with open(cffile, "r") as stream:
+    #                 _tmp = json.load(cffile)
+    #                 if not isinstance(_tmp, dict):      # Loading Json file into dict failed. File is not JSON!
+    #                     logAndInform("Validate failed. File is not valid JSON: " + str(cffile), msgtype="FAILURE")
+    #                     returnvalue = False
+    #         except Exception as e:
+    #             logAndInform("Could not open Cloudformation file for reading. Coderef 18. Message: " + str(e))
+    #             returnvalue = False
+    #         logAndInform("Detected JSON file. Checking ["+cffile+"] for valid formatting...", msgtype="DEBUG")
+    #     else:
+    #         logAndInform("Cloudformation file is neither YAML or JSON. Cannot continue.", msgtype="DEBUG")
         if isinstance(_tmp, dict):
             if "Resources" in _tmp.keys():
                 for resource in _tmp["Resources"].keys():
@@ -356,10 +358,11 @@ def doModifyCloudformation(cloudformationfile, account, name, region):
     if debug:
         logAndInform("'aws', '--profile', " + account + ", 'cloudformation', 'describe-stacks', '--region', " + region + ", '--query', " + 'Stacks[?(Tags[?Key == \'StackCreationPath\' && Value == \'' + str(account) + ':' + cloudformationfile + '\'])][StackId]' + ", '--output', 'text' ", msgtype="DEBUG")
     stacksWithSearchTag = str(searchstack.decode()).split("\n")
+    logAndInform ("Creating new Stack. StackID [" + responsarray["StackId"] + ']. This could take a few minutes depending on your requested deployment. Please wait...')
     newstack = doAddCloudformation(cloudformationfile, account, name, region)
     # TODO: Insert logic here to detect that the new stack is active and working!
+    
     responsarray = json.loads(str(newstack.decode()))
-    logAndInform ("Creating new Stack. StackID [" + responsarray["StackId"] + ']. This could take a few minutes depending on your requested deployment. Please wait...')
     
     # Loop for a while to see if the new stack comes up OK.
     loop = 0
@@ -562,4 +565,22 @@ def doDeleteCloudformationFromConfig(configfile, account, name, region):
     logAndInform("Performing doDeleteCloudformationFromConfig on configfile ["+configfile+"], account ["+account+"], region ["+region+"]", msgtype="DEBUG")
     doDeleteCloudformation(configfile, account, name, region)
     
+
+def getDictFromFile(configfile: str) -> dict:
+    # This function will return a dict from a yaml or json file
+    if os.path.isfile(configfile):
+        try:
+            with open(configfile, 'r') as stream:
+                if re.match('^\.y[a]{0,1}ml$', configfile):
+                    _mydict = yaml.load(stream)
+                elif re.match('^.*\.json$', configfile):
+                    _mydict = json.load(stream)
+                else:
+                    return False
+        except Exception as e:
+            logAndInform("Could not transform file to dict. Error: " + str(e), msgtype="FAILURE")
+    else:
+        return False
+    return _mydict
+
 main()
