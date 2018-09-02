@@ -20,7 +20,7 @@ Resources:
                     Value: ilius
                 -
                     Key: Service
-                    Value: upupandaway
+                    Value: bobby
 #             UserData: 
 #                 "Fn::Base64": !Sub |
 #                     #!/bin/bash
