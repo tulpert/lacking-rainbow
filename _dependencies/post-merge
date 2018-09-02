@@ -457,6 +457,8 @@ def doDeleteCloudformation(element, account, name, region):
     for stackid in deleteStackIds:
         if not re.search('^\s*$', stackid):
             logAndInform("Performing delete of StackId [" + str(stackid) + ']')
+# !!! IMPORTANT !!! ----> TODO!!
+# Check that the stack is in a state which allows it to be deleted. Example, in state UPDATE_COMPLETE_CLEANUP_IN_PROGRESS it cannot be deleted
             deletestack = check_output(['aws', '--profile', account, 'cloudformation', 'delete-stack', '--region', region, '--stack-name', stackid])
     logAndInform("Deletion of ["+name+"] probably was a success! ReferenceID: "+runid+". Output: " + str(deletestack), msgtype="DEBUG")
 
