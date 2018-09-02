@@ -369,12 +369,12 @@ def doReplaceCloudformation(cloudformationfile, account, name, region):
                 logAndInform ("Still waiting for CREATE_COMPLETE on StackId[" + str(responsarray["StackId"]) + "]. Please have patience...")
                 timer_counter = 0
             time.sleep(20)
-        elif "CREATE_COMPLETE" in str(create_status):
+        elif str(create_status) in ["CREATE_COMPLETE" or "UPDATE_COMPLETE"]:
             loop = loop_seconds
             doDeletePreviousStack = True
         else:
             # Message status is other than what we expected. Inform user!
-            logAndInform ("Create status mismatch. Expected CREATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
+            logAndInform ("Create status mismatch. Expected CREATE_COMPLETE or UPDATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
             loop = loop_seconds
  
     for stackid in stacksWithSearchTag:
@@ -383,7 +383,7 @@ def doReplaceCloudformation(cloudformationfile, account, name, region):
                 logAndInform("Calling delete on old cloudformation stack [" + str(stackid) + "]")
                 doDeleteCloudformation(str(stackid), account, name, region)
             else:
-                logAndInform("New stack creation status is [" + str(create_status) + "]. Expected CREATE_COMPLETE. Will not delete old stack.", msgtype="FAILURE") 
+                logAndInform("New stack creation status is [" + str(create_status) + "]. Expected a *_COMPLETE status. Will not delete old stack.", msgtype="FAILURE") 
 
 def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, region: str):
     doDeletePreviousStack = False
@@ -414,12 +414,12 @@ def doModifyCloudformationFromConfig(configfile: str, account: str, name: str, r
                     logAndInform ("Still waiting for CREATE_COMPLETE on StackId[" + str(responsarray["StackId"]) + "]. Please have patience...")
                     timer_counter = 0
                 time.sleep(20)
-            elif "CREATE_COMPLETE" in str(create_status):
+            elif str(create_status) in ["CREATE_COMPLETE", "UPDATE_COMPLETE"]: #  in str(create_status):
                 doDeletePreviousStack = True
                 loop = loop_seconds
             else:
                 # Message status is other than what we expected. Inform user!
-                logAndInform ("Create status mismatch. Expected CREATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
+                logAndInform ("Create status mismatch. Expected CREATE_COMPLETE or UPDATE_COMPLETE. Got [ " + str(create_status.decode().strip()) + "]", msgtype="ERROR")
                 loop = loop_seconds
     else:
         logAndInform("Creating stack failed. Message: " + str(responsarray), msgtype="ERROR")
