@@ -20,7 +20,7 @@ Resources:
                     Value: ilius
                 -
                     Key: Service
-                    Value: heavens
+                    Value: skyward
 #             UserData: 
 #                 "Fn::Base64": !Sub |
 #                     #!/bin/bash
