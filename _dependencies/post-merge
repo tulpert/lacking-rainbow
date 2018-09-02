@@ -212,9 +212,9 @@ def main():
                         elif operator == 'M':
                             # Decide to either update the old stack or replace it
                             # doUpdate still has a bug if template name is over 128 characters. Needs to be fixed.
-                            # doUpdateCloudformation(file_changed, gitbranchname, stackname, region)
+                            doUpdateCloudformation(file_changed, gitbranchname, stackname, region)
                             
-                            doReplaceCloudformation(file_changed, gitbranchname, stackname, region)
+                            # doReplaceCloudformation(file_changed, gitbranchname, stackname, region)
                         else:
                             logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
                     else:
@@ -317,7 +317,7 @@ def doAddCloudformation(cloudformationfile, account, name, region):
 def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, region: str) -> dict:
     logAndInform("Detected Update Cloudformation event: [" + cloudformationfile + "]")
     # Return the latest created and valid cloudformation stack for this name
-    searcharray = ['aws', '--profile', str(account), 'cloudformation',  'describe-stacks', '--region', str(region), '--query', 'Stacks[?(Tags[?(Key == \'StackCreationPath\' && Value == \''+str(account) + ':' + str(cloudformationfile) + '\') || StackStatus == \'CREATE_COMPLETE\'])] | sort_by (@, &CreationTime)[:1].[StackId]', '--output', 'text']
+    searcharray = ['aws', '--profile', str(account), 'cloudformation',  'describe-stacks', '--region', str(region), '--query', 'Stacks[?(Tags[?(Key == \'StackCreationPath\' && Value == \''+str(account) + ':' + str(cloudformationfile) + '\') || StackStatus == \'CREATE_COMPLETE\'])] | sort_by (@, &CreationTime)[:1].[StackName]', '--output', 'text']
     logAndInform("Running testcommand: " + ' '.join(searcharray), msgtype="DEBUG")
 
     searchstack = check_output(searcharray)
@@ -325,7 +325,7 @@ def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, reg
 
     logAndInform("Updating existing running stack [" + str(searchstack) + "]", msgtype="DEBUG")
     if searchstack:
-        runarray = ['aws', '--profile', account, 'cloudformation', 'update-stack', '--stack-name', str(searchstack), '--tags', 'Key="'+str(creationkeystring)+'",Value="'+ str(account) + ':' + str(cloudformationfile) +'"',  '--region', str(region), '--template-body', 'file://'+str(cloudformationfile)]
+        runarray = ['aws', '--profile', account, 'cloudformation', 'update-stack', '--stack-name', str(searchstack.decode().strip()), '--tags', 'Key="'+str(creationkeystring)+'",Value="'+ str(account) + ':' + str(cloudformationfile) +'"',  '--region', str(region), '--template-body', 'file://'+str(cloudformationfile)]
         logAndInform("Will run: " + ' '.join(runarray), msgtype="DEBUG")
         y = check_output(runarray)
         logAndInform("output of Update: " + str(y), msgtype="DEBUG")
