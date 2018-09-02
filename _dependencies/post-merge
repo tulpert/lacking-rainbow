@@ -211,8 +211,10 @@ def main():
                             # If not, then ignore.")
                         elif operator == 'M':
                             # Decide to either update the old stack or replace it
-                            doUpdateCloudformation(file_changed, gitbranchname, stackname, region)
-                            # doReplaceCloudformation(file_changed, gitbranchname, stackname, region)
+                            # doUpdate still has a bug if template name is over 128 characters. Needs to be fixed.
+                            # doUpdateCloudformation(file_changed, gitbranchname, stackname, region)
+                            
+                            doReplaceCloudformation(file_changed, gitbranchname, stackname, region)
                         else:
                             logAndInform("Detected Unknown event. Cannot continue. Error 42. ["+file_changed+"]", msgtype="ERROR")
                     else:
@@ -319,8 +321,18 @@ def doUpdateCloudformation(cloudformationfile: str, account: str, name: str, reg
     logAndInform("Running testcommand: " + ' '.join(searcharray), msgtype="DEBUG")
 
     searchstack = check_output(searcharray)
-    logAndInform("Testig: " + str(searchstring), msgtype="DEBUG")
-    # aws --profile dev cloudformation describe-stacks --region eu-west-2 --query "Stacks[?(Tags[?Key == StackCreationPath && Value == 'dev:*'])][StackId] --output text
+    logAndInform("Testig: " + str(searchstack), msgtype="DEBUG")
+
+    logAndInform("Updating existing running stack [" + str(searchstack) + "]", msgtype="DEBUG")
+    if searchstack:
+        runarray = ['aws', '--profile', account, 'cloudformation', 'update-stack', '--stack-name', str(searchstack), '--tags', 'Key="'+str(creationkeystring)+'",Value="'+ str(account) + ':' + str(cloudformationfile) +'"',  '--region', str(region), '--template-body', 'file://'+str(cloudformationfile)]
+        logAndInform("Will run: " + ' '.join(runarray), msgtype="DEBUG")
+        y = check_output(runarray)
+        logAndInform("output of Update: " + str(y), msgtype="DEBUG")
+        return y
+    else:
+        return False
+        logAndInform("Could not find a suitable stack. Coderef 1788", msgtype="DEBUG")
 
 def doReplaceCloudformation(cloudformationfile, account, name, region):
     logAndInform("Detected REPLACE Cloudformation event: [" + cloudformationfile + "]")
