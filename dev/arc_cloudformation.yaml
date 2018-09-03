@@ -20,7 +20,7 @@ Resources:
                     Value: arcturus
                 -
                     Key: Service
-                    Value: heavens
+                    Value: Spica
 #             UserData: 
 #                 "Fn::Base64": !Sub |
 #                     #!/bin/bash
