@@ -6,3 +6,21 @@ ec2:
     tags:
         - Name: this_is_name_tag
         - Holy: moly
+alb:
+  - name: myalb
+    allocatedstorage: 200
+    dbinstanceclass: db.m4.xlarge
+    engine: sqlserver-se
+    engineversion: 13.00.4466.4.v1
+    backupretentionperiod: 1
+    dbparametergroupname: sqlserver-std-2016
+    optiongroupname: sqlserver-std-2016
+    preferredbackupwindow: 21:30-22:30
+    preferredmaintenancewindow: sun:22:31-sun:23:30
+    storagetype: gp2
+    autominorversionupgrade: false
+    allowmajorversionupgrade: false
+    multiaz: false
+    port: 1433
+    licensemodel: license-included
+    domain:  d-9367299618
