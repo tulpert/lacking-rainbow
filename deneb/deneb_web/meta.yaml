@@ -1,16 +1,16 @@
 env:
     prod:
-        aTechCompKey: ATechKeyPROD
+        aTechCompKey: level2_ATechKeyPROD
     test:
-        aTechCompKey: ATechKeyTEST
+        aTechCompKey: level2_ATechKeyTEST
     dev:
-        aTechCompKey: ATechKeyDEV
+        aTechCompKey: level2_ATechKeyDEV
 
-vpc:            inside-deneb
-subnet:         sub-bastion-a
-region:         eu-west-10
+vpc:            level2_inside-deneb
+subnet:         level2_sub-bastion-a
+region:         level2_eu-west-10
 Tags:
-    - Key: fruit
-      Value: apple
-    - Key: metakey
-      Value: metavalue
+    - Key: level2_fruit
+      Value: level2_apple
+    - Key: level2_metakey
+      Value: level2_metavalue

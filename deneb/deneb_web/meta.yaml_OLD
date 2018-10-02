@@ -1,0 +1,16 @@
+env:
+    prod:
+        aTechCompKey: ATechKeyPROD
+    test:
+        aTechCompKey: ATechKeyTEST
+    dev:
+        aTechCompKey: ATechKeyDEV
+
+vpc:            inside-deneb
+subnet:         sub-bastion-a
+region:         eu-west-10
+Tags:
+    - Key: fruit
+      Value: apple
+    - Key: metakey
+      Value: metavalue
