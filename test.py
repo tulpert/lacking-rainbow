@@ -13,6 +13,8 @@ import tempfile
 from os import path
 from subprocess import check_output
 
+metafilename    = 'meta.yaml.test'
+
 def main():
     traverse = False
     part = os.path.split(sys.argv[1])
@@ -22,7 +24,7 @@ def main():
     finalarray = []
     while i < len(part):
         # Check for eventual meta.yaml file
-        metafile = currentelement + 'meta.yaml'
+        metafile = currentelement + metafilename
         currentelement = currentelement + str(part[i])
         if os.path.isfile(metafile):
             print (" - Found META file: " + str(metafile))
