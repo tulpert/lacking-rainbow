@@ -1,0 +1,13 @@
+env:
+    prod:
+        AServiceKey: level2_AServiceProdValue
+    test:
+        AServiceKey: level2_AServiceTestValue
+    dev:
+        AServiceKey: level2_AServiceDevValue
+
+vpc:            level2_vpc-dmz
+subnet:         level2_sub-bastion-c
+instance-type:  level2_t2.micro
+az: level2_a
+testsubmod: level2_true

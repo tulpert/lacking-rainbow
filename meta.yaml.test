@@ -1,0 +1,17 @@
+env:
+    dev:
+        aws-linux2: level1_amidev
+        ImAKey: level1_ImADevValue
+    prod:
+        aws-linux2: level1_amiprod
+        ImAKey: level1_ImAProdValue
+    test:
+        aws-linux2: level1_amitest
+        ImAKey: level1_ImATestValue
+
+
+vpc:            level1_vpc-dmz
+subnet:         level1_sub-bastion-a
+region:         level1_eu-west-2
+# aws-linux2:     ami-924aa8f5comment
+instancetype:   level1_t2.micro
