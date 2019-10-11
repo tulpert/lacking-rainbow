@@ -11,6 +11,7 @@ Resources:
             NetworkInterfaces:
                 - AssociatePublicIpAddress: "true"
                   DeviceIndex: 0
+                  SubnetId: subnet-03eb7e27cebefc3e4
             SecurityGroupIds:
                - sg-09e63b2fe04695925
             SubnetId: subnet-03eb7e27cebefc3e4
