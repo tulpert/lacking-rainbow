@@ -8,6 +8,8 @@ Resources:
             AvailabilityZone: eu-west-2a
             ImageId: ami-924aa8f5
             InstanceInitiatedShutdownBehavior: stop
+            NetworkInterfaces:
+                - AssociatePublicIpAddress: "true"
             SecurityGroupIds:
                - sg-09e63b2fe04695925
             SubnetId: subnet-03eb7e27cebefc3e4
