@@ -9,9 +9,8 @@ Resources:
             ImageId: ami-924aa8f5
             InstanceInitiatedShutdownBehavior: stop
             NetworkInterfaces:
-                - 
-                    AssociatePublicIpAddress: "true"
-                    DeviceIndex: 0
+                - AssociatePublicIpAddress: "true"
+                  DeviceIndex: 0
             SecurityGroupIds:
                - sg-09e63b2fe04695925
             SubnetId: subnet-03eb7e27cebefc3e4
